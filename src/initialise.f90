@@ -85,7 +85,10 @@ contains
 
         ! read data from files
         call log_msg('Reading sources, receivers and travel times...')
-        if(mcmc_set%datatype == 3)then
+        ! evcano: datatype == 4 indicates inversion of rgrp,rpha,lgrp,lpha data
+        if(mcmc_set%datatype == 4) then
+            allocate(dat(4))
+        elseif(mcmc_set%datatype == 3)then
             allocate(dat(2))
         else
             allocate(dat(1))
