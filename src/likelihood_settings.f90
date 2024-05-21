@@ -50,7 +50,13 @@ module like_settings
         ! source files
         character(len=STRLEN) :: bsources_file, ssources_file
         character(len=STRLEN) :: breceivers_file, sreceivers_file
+        ! data files
         character(len=STRLEN) :: bdata_file, sdata_file
+        ! evcano: data files for rgrp, rpha, lgrp, lpha measurements
+        character(len=STRLEN) :: sdata_rg_file
+        character(len=STRLEN) :: sdata_rp_file
+        character(len=STRLEN) :: sdata_lg_file
+        character(len=STRLEN) :: sdata_lp_file
         ! nd: number of body wave data types; np: number of periods
         ! integer :: nd, np
         ! sigma dependence
@@ -194,6 +200,24 @@ contains
             call read_sources(like_set%sreceivers_file,dat(2)%rev,bnd)
             call read_times_3(like_set%sdata_file,dat(2))
             dat(2)%datatype = 1
+        ! evcano: read rgrp,rpha,lgrp,lphase data (sources and receivers are shared)
+        case(4)
+            ! rayleigh group
+            call read_sources(like_set%ssources_file,dat(1)%src,bnd)
+            call read_sources(like_set%sreceivers_file,dat(1)%rev,bnd)
+            call read_times_3(like_set%sdata_rg_file,dat(1))
+            ! rayleigh phase
+            call read_sources(like_set%ssources_file,dat(2)%src,bnd)
+            call read_sources(like_set%sreceivers_file,dat(2)%rev,bnd)
+            call read_times_3(like_set%sdata_rp_file,dat(2))
+            ! love group
+            call read_sources(like_set%ssources_file,dat(3)%src,bnd)
+            call read_sources(like_set%sreceivers_file,dat(3)%rev,bnd)
+            call read_times_3(like_set%sdata_lg_file,dat(3))
+            ! love phase
+            call read_sources(like_set%ssources_file,dat(4)%src,bnd)
+            call read_sources(like_set%sreceivers_file,dat(4)%rev,bnd)
+            call read_times_3(like_set%sdata_lp_file,dat(4))
         end select
     end subroutine read_data
 
