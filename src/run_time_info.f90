@@ -50,6 +50,12 @@ module run_info
         integer, dimension(:,:,:), allocatable :: sites_id
         real(c_double), dimension(:), allocatable   :: bnoise0, bnoise1
         real(c_double), dimension(:), allocatable   :: snoise0, snoise1
+        ! evcano: new noise variables
+        real(c_double), dimension(:), allocatable   :: srgnoise0, srgnoise1
+        real(c_double), dimension(:), allocatable   :: srpnoise0, srpnoise1
+        real(c_double), dimension(:), allocatable   :: slgnoise0, slgnoise1
+        real(c_double), dimension(:), allocatable   :: slpnoise0, slpnoise1
+        ! evcano: finish
         real(c_double), dimension(:,:), allocatable   :: locations
         real(c_double), dimension(:,:,:), allocatable :: aveP, aveS
         real(c_double), dimension(:,:,:), allocatable :: stdP, stdS

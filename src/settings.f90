@@ -58,11 +58,27 @@ module m_settings
         real(kind=ii10) :: bn1_min, bn1_max
         real(kind=ii10) :: sn0_min, sn0_max
         real(kind=ii10) :: sn1_min, sn1_max
+        ! evcano: limits for new noise variables
+        real(kind=ii10) :: srgn0_min, srgn0_max
+        real(kind=ii10) :: srgn1_min, srgn1_max
+        real(kind=ii10) :: srpn0_min, srpn0_max
+        real(kind=ii10) :: srpn1_min, srpn1_max
+        real(kind=ii10) :: slgn0_min, slgn0_max
+        real(kind=ii10) :: slgn1_min, slgn1_max
+        real(kind=ii10) :: slpn0_min, slpn0_max
+        real(kind=ii10) :: slpn1_min, slpn1_max
+        ! evcano: finish
         real(kind=ii10) :: sigma_vp, sigma_vp2
         real(kind=ii10) :: sigma_vs, sigma_vs2
         real(kind=ii10) :: sigma_rho, sigma_rho2
         real(kind=ii10) :: sigma_bn0, sigma_bn1
         real(kind=ii10) :: sigma_sn0, sigma_sn1
+        ! evcano: noise parameter for rgrp,rpha,lgrp,lpha
+        real(kind=ii10) :: sigma_srgn0, sigma_srgn1
+        real(kind=ii10) :: sigma_srpn0, sigma_srpn1
+        real(kind=ii10) :: sigma_slgn0, sigma_slgn1
+        real(kind=ii10) :: sigma_slpn0, sigma_slpn1
+        ! evcano: finish
         real(kind=ii10) :: pd, pd2
 
         ! datatype
@@ -185,7 +201,7 @@ contains
             &the minimum number!')
         endif
 
-        if(mcmc_set%datatype > 3)then
+        if(mcmc_set%datatype > 4)then
             call exception_raiseError('Invalid data type.')
         endif
 
