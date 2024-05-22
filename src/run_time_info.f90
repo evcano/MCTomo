@@ -91,6 +91,7 @@ contains
         type(c_ptr), intent(in),optional  :: pt
 
         integer np, nd
+        integer np_rg, np_rp, np_lg, np_lp
         integer i
 
         RTI%randcount = 0
@@ -119,14 +120,34 @@ contains
             ! allocate one element for surface wave, just for safe
             nd = dat(1)%np
             np = 1
+            np_rg = 1
+            np_rp = 1
+            np_lg = 1
+            np_lp = 1
         case (2)
             ! allocate one element for body wave
             nd = 1
             np = dat(1)%np*dat(1)%nmodes
+            np_rg = 1
+            np_rp = 1
+            np_lg = 1
+            np_lp = 1
         case (3)
             ! for body waves
             nd = dat(1)%np
             np = dat(2)%np*dat(2)%nmodes
+            np_rg = 1
+            np_rp = 1
+            np_lg = 1
+            np_lp = 1
+            ! evcano: set number of periods for rgrp, rpha, lgrp, lpha measurements
+        case (4)
+            nd = 1
+            np = 1
+            np_rg = dat(1)%np*dat(1)%nmodes
+            np_rp = dat(2)%np*dat(2)%nmodes
+            np_lg = dat(3)%np*dat(3)%nmodes
+            np_lp = dat(4)%np*dat(4)%nmodes
         end select
 
         ! source locations
@@ -166,6 +187,34 @@ contains
         do i = 1, np
             RTI%snoise0(i) = set%sn0_min + unirand(RTI%randcount)*(set%sn0_max-set%sn0_min)
             RTI%snoise1(i) = set%sn1_min + unirand(RTI%randcount)*(set%sn1_max-set%sn1_min)
+        enddo
+        ! evcano: for rayleigh group measurement
+        allocate( RTI%srgnoise0(np_rg))
+        allocate( RTI%srgnoise1(np_rg))
+        do i = 1, np_rg
+            RTI%srgnoise0(i) = set%srgn0_min + unirand(RTI%randcount)*(set%srgn0_max-set%srgn0_min)
+            RTI%srgnoise1(i) = set%srgn1_min + unirand(RTI%randcount)*(set%srgn1_max-set%srgn1_min)
+        enddo
+        ! evcano: for rayleigh phase measurement
+        allocate( RTI%srpnoise0(np_rp))
+        allocate( RTI%srpnoise1(np_rp))
+        do i = 1, np_rp
+            RTI%srpnoise0(i) = set%srpn0_min + unirand(RTI%randcount)*(set%srpn0_max-set%srpn0_min)
+            RTI%srpnoise1(i) = set%srpn1_min + unirand(RTI%randcount)*(set%srpn1_max-set%srpn1_min)
+        enddo
+        ! evcano: for love group measurement
+        allocate( RTI%slgnoise0(np_lg))
+        allocate( RTI%slgnoise1(np_lg))
+        do i = 1, np_lg
+            RTI%slgnoise0(i) = set%slgn0_min + unirand(RTI%randcount)*(set%slgn0_max-set%slgn0_min)
+            RTI%slgnoise1(i) = set%slgn1_min + unirand(RTI%randcount)*(set%slgn1_max-set%slgn1_min)
+        enddo
+        ! evcano: for love phase measurement
+        allocate( RTI%slpnoise0(np_lp))
+        allocate( RTI%slpnoise1(np_lp))
+        do i = 1, np_lp
+            RTI%slpnoise0(i) = set%slpn0_min + unirand(RTI%randcount)*(set%slpn0_max-set%slpn0_min)
+            RTI%slpnoise1(i) = set%slpn1_min + unirand(RTI%randcount)*(set%slpn1_max-set%slpn1_min)
         enddo
 
         ! allocate and initialise the mean and std model
