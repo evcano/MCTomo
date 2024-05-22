@@ -1533,7 +1533,7 @@ contains
             proposeSigmaType = 6
         ! joint body and surface wave
         case(3)
-            if(random<0.1)then
+            if(random<0.5)then
                 proposeSigmaType = 5
             else
                 proposeSigmaType = 6
