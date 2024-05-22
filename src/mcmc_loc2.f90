@@ -1414,16 +1414,16 @@ contains
         case ( 1 )
             ! variable noise and variable source locations
             if(set%sigdep /= 0 .and. set%locate /=0) then
-                if (propose < 0.300)then
+                if (propose < 0.333)then
                     proposeType2 = 4
-                elseif(propose < 0.8)then
+                elseif(propose < 0.666)then
                     proposeType2 = 7
                 else
                     proposeType2 = proposeSigmaType(set%datatype)
                 endif
             ! variable noise and fixed source locations
             elseif(set%sigdep /=0 .and. set%locate ==0)then
-                if (propose < 0.800)then
+                if (propose < 0.500)then
                     proposeType2 = 4
                 else
                     proposeType2 = proposeSigmaType(set%datatype)
