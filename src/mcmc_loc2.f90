@@ -1391,8 +1391,17 @@ contains
         real(kind=ii10) random
         call random_number(random)
 
+        ! proposeType2 values
+        ! 1 cell birth
+        ! 2 cell death
+        ! 3 cell move
+        ! 4 velocity change
+        ! 5 body-wave noise change
+        ! 6 surface-wave noise change
+        ! 7 source-location update
         proposeType2 = 4
         select case (mod(iter,2))
+        ! if iteration is a pair number, modify the cells (1=birth, 2=death, 3=move)
         case ( 0 )
             if (propose < 0.333) then
                 proposeType2 = 1
@@ -1401,7 +1410,9 @@ contains
             else
                 proposeType2 = 3
             endif
+        ! if iteration is an odd number, modify the velocity, noise, or source-location values
         case ( 1 )
+            ! variable noise and variable source locations
             if(set%sigdep /= 0 .and. set%locate /=0) then
                 if (propose < 0.300)then
                     proposeType2 = 4
@@ -1410,18 +1421,21 @@ contains
                 else
                     proposeType2 = proposeSigmaType(set%datatype)
                 endif
+            ! variable noise and fixed source locations
             elseif(set%sigdep /=0 .and. set%locate ==0)then
                 if (propose < 0.800)then
                     proposeType2 = 4
                 else
                     proposeType2 = proposeSigmaType(set%datatype)
                 endif
+            ! fixed noise and variable source-locations
             elseif(set%sigdep ==0 .and. set%locate /=0)then
                 if (propose < 0.500)then
                     proposeType2 = 4
                 else
                     proposeType2 = 7
                 endif
+            ! fixed noise and fixed source-locations
             else
                 proposeType2 = 4
             endif
@@ -1442,6 +1456,7 @@ contains
         call random_number(random)
 
         proposeType = 4
+        ! variable noise and variable source-locations
         if(set%sigdep /= 0 .and. set%locate /=0)then
             if (propose < 0.2) then
                 proposeType = 1
@@ -1456,6 +1471,7 @@ contains
             else
                 proposeType = proposeSigmaType(set%datatype)
             endif
+        ! variable noise and fixed source-locations
         elseif(set%sigdep /=0 .and. set%locate ==0)then
             if (propose < 0.23) then
                 proposeType = 1
@@ -1468,6 +1484,7 @@ contains
             else
                 proposeType = proposeSigmaType(set%datatype)
             endif
+        ! fixed noise and variable source-locations
         elseif(set%sigdep ==0 .and. set%locate /=0)then
             if (propose < 0.2) then
                 proposeType = 1
@@ -1480,6 +1497,7 @@ contains
             else
                 proposeType = 7
             endif
+        ! fixed noise and fixed source-locations
         else
             if (propose < 0.2) then
                 proposeType = 1
@@ -1503,11 +1521,17 @@ contains
         real(kind=ii10) random
         call random_number(random)
 
+        ! proposeSigmaType
+        ! 5 body-wave noise
+        ! 6 surface-wave noise
         select case(datatype)
+        ! P or S, joint P and S
         case(0,1)
             proposeSigmaType = 5
+        ! only surface wave
         case(2)
             proposeSigmaType = 6
+        ! joint body and surface wave
         case(3)
             if(random<0.1)then
                 proposeSigmaType = 5
