@@ -23,7 +23,7 @@ module run_info
     ! iterruption
 
     ! > number of proposal types
-    integer, parameter :: NTYPES = 7
+    integer, parameter :: NTYPES = 11
     type T_RUN_INFO
         integer(8)      randcount
         integer         nsampled, nsamples
