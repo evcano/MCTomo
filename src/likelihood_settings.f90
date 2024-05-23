@@ -30,16 +30,21 @@ module like_settings
 
     ! likelihood
     type T_LIKE_BASE
+        ! evcano:
+        !   I added variables so information related to group and phase measurements can be stored in the same <like> instance.
+        !   Hence, we do not need to allocate and initialize <vel,gvel,grads,field4d,field5d,btime,rays,srdist> twice.
+        !   To avoid problems with the size of the aforementioned variables, group and phase measurements must have the same
+        !   number of receivers, sources, and observed frequencies.
         real( kind=ii10 )       :: like, misfit, unweighted_misfit
         ! vel and gvel for surface wave phase and group velocities
         real( kind=ii10 ), dimension(:,:,:), allocatable :: vel, gvel
-        real(kind=ii10), dimension(:,:,:), allocatable :: phaseTime
+        real(kind=ii10), dimension(:,:,:), allocatable :: groupTime, phaseTime
         real(kind=ii10), dimension(:), allocatable :: grads
         real(kind=ii10), dimension(:,:,:,:), allocatable :: field4d
         real(kind=ii10), dimension(:,:,:,:,:), allocatable :: field5d
         real(kind=ii10), dimension(:,:), allocatable :: btime
         type(T_RAY), dimension(:,:), allocatable :: rays ! currently, only for straight rays
-        real( kind=ii10 ), dimension(:,:), allocatable :: srdist, sigma
+        real( kind=ii10 ), dimension(:,:), allocatable :: srdist, sigma, sigmaGroup, sigmaPhase
         logical :: straightRaySet
     end type T_LIKE_BASE
 
@@ -107,6 +112,11 @@ contains
         allocate( like%phaseTime(nrev,nsrc,dat%np*dat%nmodes) )
         allocate( like%srdist(nrev*nsrc,dat%np*dat%nmodes) )
         allocate( like%sigma(nrev*nsrc,dat%np*dat%nmodes) )
+        ! evcano: allocate new variables
+        allocate( like%groupTime(nrev,nsrc,dat%np*dat%nmodes) )
+        allocate( like%sigmaGroup(nrev*nsrc,dat%np*dat%nmodes) )
+        allocate( like%sigmaPhase(nrev*nsrc,dat%np*dat%nmodes) )
+
         like%like = 0
         like%misfit = 0
         like%unweighted_misfit = 0
@@ -114,6 +124,11 @@ contains
         like%srdist = 1.0 ! safe
         like%sigma = 1.0 ! safe
         like%straightRaySet = .false.
+
+        ! evcano: initialise new variables
+        like%groupTime = 0.0
+        like%sigmaGroup = 1.0
+        like%sigmaPhase = 1.0
 
         ! initialise source-receiver ray lenth using source-receiver distance
 	    do i = 1, dat%np*dat%nmodes
