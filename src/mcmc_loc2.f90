@@ -1538,6 +1538,17 @@ contains
             else
                 proposeSigmaType = 6
             endif
+        ! evcano: joint rayleigh group, rayleigh phase, love group, love phase
+        case(4)
+            if (random < 0.25) then
+                proposeSigmaType = 8
+            elseif (random < 0.50) then
+                proposeSigmaType = 9
+            elseif (random < 0.75) then
+                proposeSigmaType = 10
+            else
+                proposeSigmaType = 11
+            endif
         endselect
 
     endfunction
@@ -1916,6 +1927,142 @@ contains
 
         if( RTI%snoise0(iperiod) < mcmc_set%sn0_min .or. RTI%snoise0(iperiod) > mcmc_set%sn0_max .or.&
             RTI%snoise1(iperiod) < mcmc_set%sn1_min .or. RTI%snoise1(iperiod) > mcmc_set%sn1_max) then
+            lerr = .false.
+            return
+        else
+            lerr = .true.
+        endif
+
+        return
+
+    end subroutine
+
+    subroutine srgsigma_change(RTI,mcmc_set,iperiod,lerr)
+        implicit none
+        type(T_RUN_INFO), intent(inout) :: RTI
+        type(T_MCMC_SET), intent(in) :: mcmc_set
+        integer(c_int), intent(out) :: iperiod
+        logical :: lerr
+
+        ! local
+        real( kind=ii10 ) random
+
+        iperiod = ceiling(unirand(RTI%randcount)*size(RTI%srgnoise0))
+        if( iperiod == 0 ) iperiod = 1
+
+        random = unirand(RTI%randcount)
+        if( random < 0.5) then
+            RTI%srgnoise0(iperiod) = RTI%srgnoise0(iperiod) + &
+            GASDEV(RTI%randcount)*mcmc_set%sigma_srgn0
+        else
+            RTI%srgnoise1(iperiod) = RTI%srgnoise1(iperiod) + &
+            GASDEV(RTI%randcount)*mcmc_set%sigma_srgn1
+        endif
+
+        if( RTI%srgnoise0(iperiod) < mcmc_set%srgn0_min .or. RTI%srgnoise0(iperiod) > mcmc_set%srgn0_max .or.&
+            RTI%srgnoise1(iperiod) < mcmc_set%srgn1_min .or. RTI%srgnoise1(iperiod) > mcmc_set%srgn1_max) then
+            lerr = .false.
+            return
+        else
+            lerr = .true.
+        endif
+
+        return
+
+    end subroutine
+
+    subroutine srpsigma_change(RTI,mcmc_set,iperiod,lerr)
+        implicit none
+        type(T_RUN_INFO), intent(inout) :: RTI
+        type(T_MCMC_SET), intent(in) :: mcmc_set
+        integer(c_int), intent(out) :: iperiod
+        logical :: lerr
+
+        ! local
+        real( kind=ii10 ) random
+
+        iperiod = ceiling(unirand(RTI%randcount)*size(RTI%srpnoise0))
+        if( iperiod == 0 ) iperiod = 1
+
+        random = unirand(RTI%randcount)
+        if( random < 0.5) then
+            RTI%srpnoise0(iperiod) = RTI%srpnoise0(iperiod) + &
+            GASDEV(RTI%randcount)*mcmc_set%sigma_srpn0
+        else
+            RTI%srpnoise1(iperiod) = RTI%srpnoise1(iperiod) + &
+            GASDEV(RTI%randcount)*mcmc_set%sigma_srpn1
+        endif
+
+        if( RTI%srpnoise0(iperiod) < mcmc_set%srpn0_min .or. RTI%srpnoise0(iperiod) > mcmc_set%srpn0_max .or.&
+            RTI%srpnoise1(iperiod) < mcmc_set%srpn1_min .or. RTI%srpnoise1(iperiod) > mcmc_set%srpn1_max) then
+            lerr = .false.
+            return
+        else
+            lerr = .true.
+        endif
+
+        return
+
+    end subroutine
+
+    subroutine slgsigma_change(RTI,mcmc_set,iperiod,lerr)
+        implicit none
+        type(T_RUN_INFO), intent(inout) :: RTI
+        type(T_MCMC_SET), intent(in) :: mcmc_set
+        integer(c_int), intent(out) :: iperiod
+        logical :: lerr
+
+        ! local
+        real( kind=ii10 ) random
+
+        iperiod = ceiling(unirand(RTI%randcount)*size(RTI%slgnoise0))
+        if( iperiod == 0 ) iperiod = 1
+
+        random = unirand(RTI%randcount)
+        if( random < 0.5) then
+            RTI%slgnoise0(iperiod) = RTI%slgnoise0(iperiod) + &
+            GASDEV(RTI%randcount)*mcmc_set%sigma_slgn0
+        else
+            RTI%slgnoise1(iperiod) = RTI%slgnoise1(iperiod) + &
+            GASDEV(RTI%randcount)*mcmc_set%sigma_slgn1
+        endif
+
+        if( RTI%slgnoise0(iperiod) < mcmc_set%slgn0_min .or. RTI%slgnoise0(iperiod) > mcmc_set%slgn0_max .or.&
+            RTI%slgnoise1(iperiod) < mcmc_set%slgn1_min .or. RTI%slgnoise1(iperiod) > mcmc_set%slgn1_max) then
+            lerr = .false.
+            return
+        else
+            lerr = .true.
+        endif
+
+        return
+
+    end subroutine
+
+    subroutine slpsigma_change(RTI,mcmc_set,iperiod,lerr)
+        implicit none
+        type(T_RUN_INFO), intent(inout) :: RTI
+        type(T_MCMC_SET), intent(in) :: mcmc_set
+        integer(c_int), intent(out) :: iperiod
+        logical :: lerr
+
+        ! local
+        real( kind=ii10 ) random
+
+        iperiod = ceiling(unirand(RTI%randcount)*size(RTI%slpnoise0))
+        if( iperiod == 0 ) iperiod = 1
+
+        random = unirand(RTI%randcount)
+        if( random < 0.5) then
+            RTI%slpnoise0(iperiod) = RTI%slpnoise0(iperiod) + &
+            GASDEV(RTI%randcount)*mcmc_set%sigma_slpn0
+        else
+            RTI%slpnoise1(iperiod) = RTI%slpnoise1(iperiod) + &
+            GASDEV(RTI%randcount)*mcmc_set%sigma_slpn1
+        endif
+
+        if( RTI%slpnoise0(iperiod) < mcmc_set%slpn0_min .or. RTI%slpnoise0(iperiod) > mcmc_set%slpn0_max .or.&
+            RTI%slpnoise1(iperiod) < mcmc_set%slpn1_min .or. RTI%slpnoise1(iperiod) > mcmc_set%slpn1_max) then
             lerr = .false.
             return
         else
