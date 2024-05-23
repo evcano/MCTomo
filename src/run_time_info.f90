@@ -148,6 +148,13 @@ contains
             np_rp = dat(2)%np*dat(2)%nmodes
             np_lg = dat(3)%np*dat(3)%nmodes
             np_lp = dat(4)%np*dat(4)%nmodes
+
+            if (np_rg .ne. np_rp) then
+                call exception_raiseError('The number of rayleigh-group and rayleigh-phase frequencies is not the same')
+            endif
+            if (np_lg .ne. np_lp) then
+                call exception_raiseError('The number of love-group and love-phase frequencies is not the same')
+            endif
         end select
 
         ! source locations
