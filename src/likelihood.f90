@@ -222,6 +222,8 @@ contains
             like%like = like%likelihoods(1)%like + like%likelihoods(2)%like
             like%misfit = like%likelihoods(1)%misfit + like%likelihoods(2)%misfit
             like%unweighted_misfit = like%likelihoods(1)%unweighted_misfit + like%likelihoods(2)%unweighted_misfit
+        case (4)
+            call exception_raiseError('location_likelihood not implemented for LIKE_SET%DATATYPE=4')
         end select
 
         !write(*,*) '-loglikelihood: ', like%like
