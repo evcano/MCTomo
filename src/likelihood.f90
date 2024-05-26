@@ -9,7 +9,7 @@ module m_likelihood
     use like_settings,     only : T_DATA, T_LIKE_BASE, T_LIKE_SET, likeBaseSetup
     use cgal_delaunay,     only : d3
     use m_body_likelihood, only : body_likelihood, body_likelihood_grads, body_noise_likelihood, body_location_likelihood
-    use m_surf_likelihood, only : surf_likelihood, surf_noise_likelihood, surf_likelihood_grads
+    use m_surf_likelihood, only : surf_likelihood, surf_noise_likelihood, surf_likelihood_grads, surf_noise_likelihood_2
 
     implicit none
 
@@ -42,15 +42,32 @@ contains
         like%unweighted_misfit = huge(like%unweighted_misfit)
         
         allocate(like%grads(2*ncell_max+4*dat(1)%nsrc))
-        if(like_set%datatype==3)then
+        ! evcano:
+        !  if datatype is 4, the dimension of likelihoods is 2.
+        !  likelihoods(1) is for rgrp and rpha information
+        !  likelihoods(2) is for lgrp  and lpha information
+        if (like_set%datatype==3 .or. like_set%datatype==4) then
             allocate(like%likelihoods(2))
         else
             allocate(like%likelihoods(1))
         endif
 
-        do i = 1, size(dat)
-            call likeBaseSetup(like%likelihoods(i),dat(i),like_set,ncell_max)
-        enddo
+        ! evcano:
+        !  If datatype is 4, dat(1) holds rgrp data, dat(2) rpha data, dat(3) lgrp data, dat(4) lpha data.
+        !  We setup likelihoods(1) using rgrp data and likelihoods(2) using lgrp data.
+        !  likeBaseSetup does not use the data itself, it only uses the number of sources, receivers,
+        !  frequencies and modes of each dataset.
+        !  rgrp and rpha share the same number of sources, receivers, etc. The same goes for lgrp and lpha.
+        !  Thus, it doesnt matter if we use rgrp or rpha to initialize likelihoods(1). The same applies for
+        !  likelihoods(2).
+        if (like_set%datatype==4) then
+            call likeBaseSetup(like%likelihoods(1),dat(1),like_set,ncell_max)
+            call likeBaseSetup(like%likelihoods(2),dat(3),like_set,ncell_max)
+        else
+            do i = 1, size(dat)
+                call likeBaseSetup(like%likelihoods(i),dat(i),like_set,ncell_max)
+            enddo
+        endif
 
     end subroutine like_setup
 
@@ -84,6 +101,10 @@ contains
             like%like = like%likelihoods(1)%like + like%likelihoods(2)%like
             like%misfit = like%likelihoods(1)%misfit + like%likelihoods(2)%misfit
             like%unweighted_misfit = like%likelihoods(1)%unweighted_misfit + like%likelihoods(2)%unweighted_misfit
+        ! evcano: TODO add case 4
+        ! probably good to create new surf_likelihood function that evaluates group and phase measurements simultaneously
+        ! and then call it twice, one for love and other for rayleigh
+        ! thus, i need to modify like%likelihoods so it holds two, one for rayleigh (group+phase) and other for love(group+phase)
         end select
 
         !write(*,*) '-loglikelihood: ', like%like
@@ -124,6 +145,7 @@ contains
             like%unweighted_misfit = like%likelihoods(1)%unweighted_misfit + like%likelihoods(2)%unweighted_misfit
             like%grads = like%likelihoods(1)%grads
             like%grads(RTI%ncells+1:2*RTI%ncells) = like%likelihoods(1)%grads(RTI%ncells+1:2*RTI%ncells) + like%likelihoods(2)%grads(1:RTI%ncells)
+        !TODO:evcano add new case here
         end select
 
     endsubroutine update_lgP_grads
@@ -152,6 +174,21 @@ contains
             like%like = like%likelihoods(1)%like + like%likelihoods(2)%like
             like%misfit = like%likelihoods(1)%misfit + like%likelihoods(2)%misfit
             like%unweighted_misfit = like%likelihoods(1)%unweighted_misfit + like%likelihoods(2)%unweighted_misfit
+        ! evcano: update new noise parameters
+        case (4)
+            ! noise likelihood of rayleigh-group and rayleigh-phase
+            call surf_noise_likelihood_2(dat(1),dat(2),RTI,like%likelihoods(1),1)
+            ! noise likelihood of love-group and love-phase
+            call surf_noise_likelihood_2(dat(3),dat(4),RTI,like%likelihoods(2),2)
+
+            like%like = like%likelihoods(1)%likeGroup + like%likelihoods(1)%likePhase + &
+                like%likelihoods(2)%likeGroup + like%likelihoods(2)%likePhase
+
+            like%misfit = like%likelihoods(1)%misfitGroup + like%likelihoods(1)%misfitPhase + &
+                like%likelihoods(2)%misfitGroup + like%likelihoods(2)%misfitPhase
+
+            like%unweighted_misfit = like%likelihoods(1)%unweighted_misfitGroup + like%likelihoods(1)%unweighted_misfitPhase + &
+                like%likelihoods(2)%unweighted_misfitGroup + like%likelihoods(2)%unweighted_misfitPhase
         end select
 
         !write(*,*) '-loglikelihood: ', like%like
