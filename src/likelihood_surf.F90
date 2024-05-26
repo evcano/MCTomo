@@ -19,7 +19,7 @@ module m_surf_likelihood
     implicit none
     private
 
-    public :: surf_likelihood, surf_noise_likelihood, surf_noise_likelihood_2
+    public :: surf_likelihood, surf_noise_likelihood, surf_noise_likelihood_2, surf_likelihood_2
     public :: surf_likelihood_grads
 
     ! debug
@@ -170,8 +170,6 @@ contains
         call convert_to_layer( model, grid, ix0, ix1, iy0, iy1, layer )
 
         ! first set up the parameters for surface modes code
-        ! evcano: this needs to be changed
-        ! evcano: modetype: 1 is rayleigh, 0 is love; phaseGroup 0 is phase, >0 is group and phase
         paras%modetype = settings%raylov
         paras%phaseGroup = settings%phaseGroup
         paras%tolmin = settings%tol
@@ -226,7 +224,6 @@ contains
         endif
 
         ! phase/group velocity
-        ! evcano: modify this so both %vel and %gvel are assigned
         if(settings%phaseGroup == 1)then
             like%gvel(:,iy0:iy1, ix0:ix1) = gvel
         else
@@ -234,7 +231,6 @@ contains
         endif
 
         ! if using straight rays
-        ! evcano: TODO: raise expetion if straightrays were to be used
         if(settings%isStraight == 1)then
             if(.not.like%straightRaySet)then
                 allocate( like%rays(dat%nsrc*dat%nrev, dat%np) )
@@ -286,8 +282,6 @@ contains
             endif
 
             ! call modrays to calculate travel times
-            ! TODO evcano: i need to merge the raystat of both group and phase measurements to consider all required rays
-            ! TODO: evcano: srdist must be the same for group and phase measurements
             allocate( phaseRays(dat%nrev*dat%nsrc, dat%np) )
             phaseRays%srcid = 0
             phaseRays%revid = 0
@@ -359,7 +353,6 @@ contains
 
         ! likelihood
         ! noise level
-        ! evcano TODO: sigmaGroup and sigmaPhase need to be set here
         if(settings%sigdep /= 0)then
             do i = 1, dat%np
                 nrr  = 0
@@ -382,7 +375,6 @@ contains
         !    call exception_raiseError('The noise level is 0!')
         !endif
 
-        ! evcano TODO: need to combine likelihood of group and phase measurements
         like%like = 0
         like%misfit = 0
         like%unweighted_misfit = 0
@@ -807,4 +799,314 @@ contains
         like%likePhase = like%likePhase + sum(log(like%sigmaPhase)) + datPhase%nrays/2.0 * log(PI2)
         return
     end subroutine surf_noise_likelihood_2
+
+    subroutine surf_likelihood_2(dat,model,RTI,perturbed_box,settings,like)
+    
+        implicit none
+        type(T_DATA), intent(in)                    :: dat
+        type(T_MOD), intent(inout)                  :: model
+        type(T_RUN_INFO), intent(inout)             :: RTI
+        type(d3), dimension(2), intent(in)          :: perturbed_box
+        type(T_LIKE_SET), intent(in)                :: settings
+        type(T_LIKE_BASE), intent(inout)            :: like
+
+        ! > local variable for normal mode modeling
+        type(T_MODES_PARA) :: paras
+        integer         :: ix0, ix1, iy0, iy1
+        integer         :: idx0, idx1, idy0, idy1
+        !integer         :: iper, ier, ia
+        !real(kind=ii10) :: w, ekd, y0l(6), y0r(3), yij(15)
+        integer, dimension(:,:), allocatable            :: ierr
+        real(kind=ii10), dimension(:,:,:), allocatable :: pvel, gvel
+        type(T_LAY_MOD), dimension(:,:), allocatable    :: layer
+
+        ! > local variable for fast marching
+        integer gridx, gridy
+        integer sgref
+        integer sgdic, sgext
+        integer order
+        integer uar
+        real( kind=ii10 ) band
+    
+        ! > local variable for travel times and rays
+        integer nsrc, nrev
+        integer, dimension(:), allocatable :: crazyray
+        type(T_RAY), dimension(:,:), allocatable           :: phaseRays
+
+        ! > local grid
+        type(T_GRID) :: grid
+
+        integer nrr
+        integer i, j, k
+
+        nsrc = dat%nsrc
+        nrev = dat%nrev
+        grid = settings%grid
+
+        ! first, calculate dispersion curve grid by grid
+        ! convert 3d grid vp, vs and rho model to layered model
+        ix0 = floor( (perturbed_box(1)%x-grid%xmin)/grid%dx ) + 1 - expand
+        ix1 = floor( (perturbed_box(2)%x-grid%xmin)/grid%dx ) + 1 + expand
+        iy0 = floor( (perturbed_box(1)%y-grid%ymin)/grid%dy ) + 1 - expand
+        iy1 = floor( (perturbed_box(2)%y-grid%ymin)/grid%dy ) + 1 + expand
+
+        ! check model, discard those the top layer is not smallest
+        if(check_model(model%vs))then
+            like%like = huge(like%like)
+            return
+        endif
+
+        if(ix0<1) ix0 = 1
+        if(iy0<1) iy0 = 1
+        if(ix1>grid%nx) ix1 = grid%nx
+        if(iy1>grid%ny) iy1 = grid%ny
+        call convert_to_layer( model, grid, ix0, ix1, iy0, iy1, layer )
+
+        ! first set up the parameters for surface modes code
+        ! evcano: this needs to be changed
+        ! evcano: modetype: 1 is rayleigh, 0 is love; phaseGroup 0 is phase, >0 is group and phase
+        paras%modetype = settings%raylov
+        paras%phaseGroup = settings%phaseGroup
+        paras%tolmin = settings%tol
+        paras%tolmax = 10*settings%tol
+        paras%smin_min = 1E-3
+        paras%smin_max = 5E-3
+        paras%dc = settings%dPhaseVel
+        paras%dcm = settings%dPhaseVel
+        paras%dc1 = settings%dPhaseVel
+        paras%dc2 = settings%dPhaseVel
+        ! calculate dispersion curve
+        ! TODO: currently, discard any velocity model which could not produce
+        ! surface waves in one or more frequencies
+        allocate( pvel(dat%np, iy0:iy1, ix0:ix1) )
+        allocate( gvel(dat%np, iy0:iy1, ix0:ix1) )
+        pvel = 100.0 ! safe
+        gvel = 100.0 ! safe
+        allocate( ierr(iy0:iy1,ix0:ix1) )
+        ierr = 0
+#ifdef _OPENMP
+        t1 = omp_get_wtime ( )
+        !call log_msg('Begin normal modes...')
+        !call omp_set_num_threads(settings%nthreads)
+#endif
+        !$omp parallel
+        !$omp do private(i,j)
+        do i = ix0, ix1
+            do j = iy0, iy1
+                call surfmodes(layer(j,i)%thick,layer(j,i)%alpha,layer(j,i)%beta, &
+                    layer(j,i)%rho,dat%freqs,paras,pvel(:,j,i),gvel(:,j,i),ierr(j,i))
+            enddo
+        enddo
+        !$omp end do
+        !$omp end parallel
+        t2 = omp_get_wtime ( )
+        !call log_msg(itoa(omp_get_num_threads() ) )
+        !call log_msg('parallelized dispersion curve code: ' //rtoa(t2-t1) )
+        !call write_vel(pvel,'phaseVel.dat')
+        ! discard models
+        if(any(ierr==1))then
+            ! prepare velocity model for the fast marching code
+            like%vel(:, iy0+1:iy1+1, ix0+1:ix1+1) = pvel
+            like%gvel(:,iy0:iy1, ix0:ix1) = gvel
+            ! assign boundary value
+            if(ix0==1) like%vel(:,:,1) = like%vel(:,:,2)
+            if(ix1==grid%nx) like%vel(:,:,grid%nx+2) = like%vel(:,:,grid%nx+1)
+            if(iy0==1) like%vel(:,1,:) = like%vel(:,2,:)
+            if(iy1==grid%ny) like%vel(:,grid%ny+2,:) = like%vel(:,grid%ny+1,:)
+            like%like = huge(like%like)
+            RTI%num_bad_model = RTI%num_bad_model + 1
+            return
+        endif
+
+        ! phase/group velocity
+        ! evcano: modify this so both %vel and %gvel are assigned
+        if(settings%phaseGroup == 1)then
+            like%gvel(:,iy0:iy1, ix0:ix1) = gvel
+        else
+            like%gvel(:,iy0:iy1, ix0:ix1) = pvel
+        endif
+
+        ! if using straight rays
+        ! evcano: TODO: raise expetion if straightrays were to be used
+        if(settings%isStraight == 1)then
+            if(.not.like%straightRaySet)then
+                allocate( like%rays(dat%nsrc*dat%nrev, dat%np) )
+                like%rays%srcid = 0
+                like%rays%revid = 0
+                like%rays%npoints = 0
+                call setup_straightRays(dat, grid, like%rays,like%srdist)
+                like%straightRaySet = .true.
+            endif
+            call CalGroupTime(like%gvel,grid,like%rays,like%phaseTime)
+        else
+            ! calculate travel time of rayleigh/love wave using fast marching code
+            ! settings
+            gridx = settings%gridx
+            gridy = settings%gridy
+            sgref = settings%sgref
+            sgdic = settings%sgdic
+            sgext = settings%sgext
+            order = settings%order
+            band  = settings%band
+            !uar   = settings%uar
+            uar   = abs(settings%phaseGroup-1)
+
+
+            ! prepare velocity model for the fast marching code
+            like%vel(:, iy0+1:iy1+1, ix0+1:ix1+1) = pvel
+            ! assign boundary value
+            if(ix0==1) like%vel(:,:,1) = like%vel(:,:,2)
+            if(ix1==grid%nx) like%vel(:,:,grid%nx+2) = like%vel(:,:,grid%nx+1)
+            if(iy0==1) like%vel(:,1,:) = like%vel(:,2,:)
+            if(iy1==grid%ny) like%vel(:,grid%ny+2,:) = like%vel(:,grid%ny+1,:)
+
+            ! prepare the beginning time
+            idx0 = ix0 - ext
+            idx1 = ix1 + ext
+            idy0 = iy0 - ext
+            idy1 = iy1 + ext
+            if(idx0<1) idx0 = 1
+            if(idy0<1) idy0 = 1
+            if(idx1>grid%nx) idx1 = grid%nx
+            if(idy1>grid%ny) idy1 = grid%ny
+            if(settings%dynamic == 2)then
+                do i = 1, dat%np
+                    do j = 1, nsrc
+                        like%btime(j,i) = &
+                        minval(like%field4d(idy0:idy1,idx0:idx1,j,i))
+                    enddo
+                enddo
+            endif
+
+            ! call modrays to calculate travel times
+            ! TODO evcano: i need to merge the raystat of both group and phase measurements to consider all required rays
+            ! TODO: evcano: srdist must be the same for group and phase measurements
+            allocate( phaseRays(dat%nrev*dat%nsrc, dat%np) )
+            phaseRays%srcid = 0
+            phaseRays%revid = 0
+            phaseRays%npoints = 0
+            allocate( crazyray(dat%np) )
+            crazyray = 0
+#ifdef _OPENMP
+            t1 = omp_get_wtime ( )
+            !call omp_set_num_threads(settings%nthreads)
+#endif
+            !$omp parallel
+            !$omp do private(nrr,i,j,k)
+            do i = 1, dat%np 
+                !if( .not.allocated(ttime) ) allocate( ttime(nrev, nsrc) )
+                if(settings%dynamic == 2)then
+                    call modrays(nsrc,dat%src(1,:),dat%src(2,:), &
+                            nrev,dat%rev(1,:),dat%rev(2,:), &
+                        dat%raystat(:,:,i),0, &
+                        grid%nx,grid%ny,grid%xmin,grid%ymin,&
+                        grid%dx,grid%dy,like%vel(i,:,:), &
+                        gridx,gridy,sgref, &
+                        sgdic,sgext,ERAD, &
+                        order,band,like%phaseTime(:,:,i), &
+                        phaseRays(:,i),crazyray(i),uar,&
+                        like%field4d(:,:,:,i),like%btime(:,i))
+                else
+                    call modrays(nsrc,dat%src(1,:),dat%src(2,:), &
+                            nrev,dat%rev(1,:),dat%rev(2,:), &
+                        dat%raystat(:,:,i),0, &
+                        grid%nx,grid%ny,grid%xmin,grid%ymin,&
+                        grid%dx,grid%dy,like%vel(i,:,:), &
+                        gridx,gridy,sgref, &
+                        sgdic,sgext,ERAD, &
+                        order,band,like%phaseTime(:,:,i), &
+                        phaseRays(:,i),crazyray(i),uar)
+                endif
+
+                ! allocate and storage the ray info
+                do j = 1, nsrc
+                    do k = 1, nrev
+                        nrr = k + (j-1)*nrev
+                        if(settings%phaseGroup ==1)then
+                            like%srdist(nrr,i) = phaseRays(nrr,i)%length()
+                        else
+                            like%srdist(nrr,i) = like%phaseTime(k,j,i)
+                        endif
+                    enddo
+                enddo
+            enddo
+            !$omp end do
+            !call log_msg(itoa(omp_get_num_threads() ) )
+            !$omp end parallel
+            t2 = omp_get_wtime ( )
+            !call log_msg('parallelized fast marching code: ' //rtoa(t2-t1) )
+    
+            ! if crazyray, return
+            if( any(crazyray > 0) )then
+                like%like = huge(like%like)
+                RTI%num_bad_ray = RTI%num_bad_ray + 1
+                return
+            endif
+
+            ! if group
+            if(settings%phaseGroup == 1)then
+                ! calculate group delay along rays
+                call CalGroupTime(like%gvel,grid,phaseRays,like%phaseTime)
+            endif
+        endif
+
+        ! likelihood
+        ! noise level
+        ! evcano TODO: sigmaGroup and sigmaPhase need to be set here
+        if(settings%sigdep /= 0)then
+            do i = 1, dat%np
+                nrr  = 0
+                do j = 1, nsrc
+                    do k = 1, nrev
+                        nrr = nrr + 1
+                        if(dat%raystat(nrr,1,i) == 1) then
+                            like%sigma(nrr,i) = RTI%snoise0(i)*like%srdist(nrr,i) + RTI%snoise1(i) 
+                        else
+                            like%sigma(nrr,i) = 1.0
+                        endif
+                    enddo
+                enddo
+            enddo
+        else
+            like%sigma = dat%ttime(:,2,:)
+        endif
+
+        !if(any(like%sigma==0))then
+        !    call exception_raiseError('The noise level is 0!')
+        !endif
+
+        ! evcano TODO: need to combine likelihood of group and phase measurements
+        like%like = 0
+        like%misfit = 0
+        like%unweighted_misfit = 0
+        do i = 1, dat%np
+            nrr  = 0
+            do j = 1, nsrc
+                   do k = 1, nrev
+                    nrr = nrr + 1
+                    if(dat%raystat(nrr,1,i) == 1) then
+                        if(like%sigma(nrr,i)<EPS)then
+                            !print * , k, j, i, like%sigma(nrr,i), like%srdist(nrr,i)
+                            call exception_raiseError('The noise level is 0!')
+                        endif
+                        like%like = like%like + ( like%phaseTime(k,j,i)-dat%ttime(nrr,1,i)&
+                            )**2/( 2*(like%sigma(nrr,i))**2 )
+                        like%misfit = like%misfit + ( like%phaseTime(k,j,i)-dat%ttime(nrr,1,i)&
+                            )**2/(like%sigma(nrr,i)**2)
+                        like%unweighted_misfit = like%unweighted_misfit + ( like%phaseTime(k,j,i)-dat%ttime(nrr,1,i)&
+                            )**2
+                    else
+                        like%sigma(nrr,i) = 1.0
+                    endif
+                enddo
+            enddo
+        enddo
+
+        like%like = like%like + sum(log(like%sigma)) + dat%nrays/2.0 * log(PI2)
+        if(like%like/=like%like)then
+            print *, like%sigma
+        endif
+        return
+
+    end subroutine surf_likelihood
 end module m_surf_likelihood
