@@ -145,7 +145,9 @@ contains
             like%unweighted_misfit = like%likelihoods(1)%unweighted_misfit + like%likelihoods(2)%unweighted_misfit
             like%grads = like%likelihoods(1)%grads
             like%grads(RTI%ncells+1:2*RTI%ncells) = like%likelihoods(1)%grads(RTI%ncells+1:2*RTI%ncells) + like%likelihoods(2)%grads(1:RTI%ncells)
-        !TODO:evcano add new case here
+        ! evcano: it seems this subroutine is only called  if HMC is used
+        case (4)
+            call exception_raiseError('update_lgP_grads not implemented for LIKE_SET%DATATYPE=4')
         end select
 
     endsubroutine update_lgP_grads
