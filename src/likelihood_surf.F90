@@ -19,7 +19,7 @@ module m_surf_likelihood
     implicit none
     private
 
-    public :: surf_likelihood, surf_noise_likelihood
+    public :: surf_likelihood, surf_noise_likelihood, surf_noise_likelihood_2
     public :: surf_likelihood_grads
 
     ! debug
@@ -170,6 +170,8 @@ contains
         call convert_to_layer( model, grid, ix0, ix1, iy0, iy1, layer )
 
         ! first set up the parameters for surface modes code
+        ! evcano: this needs to be changed
+        ! evcano: modetype: 1 is rayleigh, 0 is love; phaseGroup 0 is phase, >0 is group and phase
         paras%modetype = settings%raylov
         paras%phaseGroup = settings%phaseGroup
         paras%tolmin = settings%tol
@@ -224,6 +226,7 @@ contains
         endif
 
         ! phase/group velocity
+        ! evcano: modify this so both %vel and %gvel are assigned
         if(settings%phaseGroup == 1)then
             like%gvel(:,iy0:iy1, ix0:ix1) = gvel
         else
@@ -231,6 +234,7 @@ contains
         endif
 
         ! if using straight rays
+        ! evcano: TODO: raise expetion if straightrays were to be used
         if(settings%isStraight == 1)then
             if(.not.like%straightRaySet)then
                 allocate( like%rays(dat%nsrc*dat%nrev, dat%np) )
@@ -282,6 +286,8 @@ contains
             endif
 
             ! call modrays to calculate travel times
+            ! TODO evcano: i need to merge the raystat of both group and phase measurements to consider all required rays
+            ! TODO: evcano: srdist must be the same for group and phase measurements
             allocate( phaseRays(dat%nrev*dat%nsrc, dat%np) )
             phaseRays%srcid = 0
             phaseRays%revid = 0
@@ -353,6 +359,7 @@ contains
 
         ! likelihood
         ! noise level
+        ! evcano TODO: sigmaGroup and sigmaPhase need to be set here
         if(settings%sigdep /= 0)then
             do i = 1, dat%np
                 nrr  = 0
@@ -375,6 +382,7 @@ contains
         !    call exception_raiseError('The noise level is 0!')
         !endif
 
+        ! evcano TODO: need to combine likelihood of group and phase measurements
         like%like = 0
         like%misfit = 0
         like%unweighted_misfit = 0
@@ -698,4 +706,105 @@ contains
         close(write_resume_unit)
         return
     end subroutine
+
+    subroutine surf_noise_likelihood_2(datGroup,datPhase,RTI,like,raylov)
+        implicit none
+        type(T_DATA), intent(in)                 :: datGroup, datPhase
+        type(T_RUN_INFO), intent(in)             :: RTI
+        type(T_LIKE_BASE), intent(inout)         :: like
+
+        integer, intent(in) :: raylov
+        integer nrr
+        integer nsrc, nrev, np
+        integer i, j, k
+
+        ! at this point, nsrc,nrev, and np should be the same for datGroup and datPhase
+        nsrc = datGroup%nsrc
+        nrev = datGroup%nrev
+        np = datGroup%np
+
+        ! update sigma
+        select case (raylov)
+        ! rayleigh waves
+        case(1)
+            do i = 1, np
+                like%sigmaGroup(:,i) = RTI%srgnoise0(i)*like%srdist(:,i) + RTI%srgnoise1(i)
+                like%sigmaPhase(:,i) = RTI%srpnoise0(i)*like%srdist(:,i) + RTI%srpnoise1(i)
+            enddo
+        ! love waves
+        case(2)
+            do i = 1, np
+                like%sigmaGroup(:,i) = RTI%slgnoise0(i)*like%srdist(:,i) + RTI%slgnoise1(i)
+                like%sigmaPhase(:,i) = RTI%slpnoise0(i)*like%srdist(:,i) + RTI%slpnoise1(i)
+            enddo
+        end select
+
+        ! update likelihoods and misfit
+        like%likeGroup = 0
+        like%misfitGroup = 0
+        like%unweighted_misfitGroup = 0
+
+        like%likePhase = 0
+        like%misfitPhase = 0
+        like%unweighted_misfitPhase = 0
+
+        do i = 1, np
+            nrr  = 0
+            do j = 1, nsrc
+                do k = 1, nrev
+                    nrr = nrr + 1
+
+                    ! group velocity
+                    if(datGroup%raystat(nrr,1,i) == 1) then
+                        if (like%sigmaGroup(nrr,i)==0) then
+                            call exception_raiseError('The noise level is 0!')
+                        endif
+
+                        like%likeGroup = like%likeGroup + ( like%groupTime(k,j,i)-datGroup%ttime(nrr,1,i)&
+                            )**2/( 2*(like%sigmaGroup(nrr,i))**2 )
+
+                        like%misfitGroup = like%misfitGroup + ( like%groupTime(k,j,i)-datGroup%ttime(nrr,1,i)&
+                            )**2/(like%sigmaGroup(nrr,i)**2)
+
+                        like%unweighted_misfitGroup = like%unweighted_misfitGroup + &
+                            ( like%groupTime(k,j,i)-datGroup%ttime(nrr,1,i) )**2
+                    else
+                        like%sigmaGroup(nrr,i) = 1.0
+                    endif
+
+                    ! phase velocity
+                    if(datPhase%raystat(nrr,1,i) == 1) then
+                        if (like%sigmaPhase(nrr,i)==0) then
+                            call exception_raiseError('The noise level is 0!')
+                        endif
+
+                        like%likePhase = like%likePhase + ( like%phaseTime(k,j,i)-datPhase%ttime(nrr,1,i)&
+                            )**2/( 2*(like%sigmaPhase(nrr,i))**2 )
+
+                        like%misfitPhase = like%misfitPhase + ( like%phaseTime(k,j,i)-datPhase%ttime(nrr,1,i)&
+                            )**2/(like%sigmaPhase(nrr,i)**2)
+
+                        like%unweighted_misfitPhase= like%unweighted_misfitPhase+ &
+                            ( like%phaseTime(k,j,i)-datPhase%ttime(nrr,1,i) )**2
+                    else
+                        like%sigmaPhase(nrr,i) = 1.0
+                    endif
+
+                enddo
+            enddo
+        enddo
+
+        if(any(like%sigmaGroup<EPS))then
+            call exception_raiseError('The noise level is 0!')
+        endif
+
+        if(any(like%sigmaPhase<EPS))then
+            call exception_raiseError('The noise level is 0!')
+        endif
+
+        ! loglikelihood computation
+        like%likeGroup = like%likeGroup + sum(log(like%sigmaGroup)) + datGroup%nrays/2.0 * log(PI2)
+        like%likePhase = like%likePhase + sum(log(like%sigmaPhase)) + datPhase%nrays/2.0 * log(PI2)
+        return
+    end subroutine surf_noise_likelihood_2
 end module m_surf_likelihood
