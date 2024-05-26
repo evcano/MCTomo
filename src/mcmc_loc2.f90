@@ -541,6 +541,66 @@ contains
                 endif
                 !call log_msg('origin misfit: '//rtoa(like_copy%misfit))
                 !call log_msg('current misfit: '//rtoa(like%misfit))
+
+            ! evcano: noise parameter of rgrp, rpha, lgrp or lpha
+            case(8,9,10,11)
+                ! count
+                RTI%samplecount(ptype) = RTI%samplecount(ptype) + 1
+                samples(iter)%step = ptype
+
+                ! change the data noise sigma
+                select case (ptype)
+                case (8)
+                    call srgsigma_change(RTI,mcmc_set,iperiod,lerr)
+                    if(.not.lerr) goto 100
+                case (9)
+                    call srpsigma_change(RTI,mcmc_set,iperiod,lerr)
+                    if(.not.lerr) goto 100
+                case (10)
+                    call slgsigma_change(RTI,mcmc_set,iperiod,lerr)
+                    if(.not.lerr) goto 100
+                case (11)
+                    call slpsigma_change(RTI,mcmc_set,iperiod,lerr)
+                    if(.not.lerr) goto 100
+                end select
+
+                ! calculate likelihood
+                call noise_likelihood(dat,RTI,like_set,like)
+                ! calculate acceptance ratio
+                alpha = minval([log(one), -like%like+like_copy%like])
+
+                ! if accepted
+                if(log(random)<alpha)then
+                    accepted = .true.
+                    ! update accepted ratio and samples
+                    samples(iter)%step = ptype
+                    samples(iter)%accepted = accepted
+                    samples(iter)%vindex = iperiod
+                    samples(iter)%ncells = delaunay_size(delaunay_ptr)
+                    samples(iter)%like = like%like
+                    samples(iter)%misfit = like%misfit
+                    samples(iter)%unweighted_misfit = like%unweighted_misfit
+
+                    select case (ptype)
+                    case (8)
+                        samples(iter)%noise0 = RTI%srgnoise0(iperiod)
+                        samples(iter)%noise1 = RTI%srgnoise1(iperiod)
+                    case (9)
+                        samples(iter)%noise0 = RTI%srpnoise0(iperiod)
+                        samples(iter)%noise1 = RTI%srpnoise1(iperiod)
+                    case (10)
+                        samples(iter)%noise0 = RTI%slgnoise0(iperiod)
+                        samples(iter)%noise1 = RTI%slgnoise1(iperiod)
+                    case (11)
+                        samples(iter)%noise0 = RTI%slpnoise0(iperiod)
+                        samples(iter)%noise1 = RTI%slpnoise1(iperiod)
+                    end select
+
+                    samples(iter)%coord = 0
+                    samples(iter)%values = 0
+                    RTI%acceptedcount(ptype) = RTI%acceptedcount(ptype) + 1
+                endif
+
             case default 
                 call exception_raiseError("wrong proposal type (1 for birth, 2&
                     &for death, 3 for move, 4 for velocity change, 5 for surface wave noise change, 6 for body wave noise change&
