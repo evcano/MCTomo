@@ -36,6 +36,8 @@ module like_settings
         !   To avoid problems with the size of the aforementioned variables, group and phase measurements must have the same
         !   number of receivers, sources, and observed frequencies.
         real( kind=ii10 )       :: like, misfit, unweighted_misfit
+        real( kind=ii10 )       :: likeGroup, misfitGroup, unweighted_misfitGroup
+        real( kind=ii10 )       :: likePhase, misfitPhase, unweighted_misfitPhase
         ! vel and gvel for surface wave phase and group velocities
         real( kind=ii10 ), dimension(:,:,:), allocatable :: vel, gvel
         real(kind=ii10), dimension(:,:,:), allocatable :: groupTime, phaseTime
@@ -126,6 +128,14 @@ contains
         like%straightRaySet = .false.
 
         ! evcano: initialise new variables
+        like%likeGroup = 0
+        like%misfitGroup = 0
+        like%unweighted_misfitGroup = 0
+
+        like%likePhase = 0
+        like%misfitPhase = 0
+        like%unweighted_misfitPhase = 0
+
         like%groupTime = 0.0
         like%sigmaGroup = 1.0
         like%sigmaPhase = 1.0
