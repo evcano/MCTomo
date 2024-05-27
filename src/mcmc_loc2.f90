@@ -743,6 +743,13 @@ contains
                 call log_msg( 'Rate of bad models' )
                 call log_msg( 'Bad dispersion curves '//rtoa(RTI%num_bad_model/real(RTI%sampletotal,kind=ii10)) )
                 call log_msg( 'Bad rays '//rtoa(RTI%num_bad_ray/real(RTI%sampletotal,kind=ii10)) )
+                ! evcano: new log information
+                if (mcmc_set%datatype .eq. 4) then
+                    call log_msg( 'Rayleigh-group weighted misfit '//rtoa(like%likelihoods(1)%misfitGroup) )
+                    call log_msg( 'Rayleigh-phase weighted misfit '//rtoa(like%likelihoods(1)%misfitPhase) )
+                    call log_msg( 'Love-group weighted misfit '//rtoa(like%likelihoods(2)%misfitGroup) )
+                    call log_msg( 'Love-phase weighted misfit '//rtoa(like%likelihoods(2)%misfitPhase) )
+                endif
                 call log_msg( '---------------------------------------------------------' )
             endif
         enddo
