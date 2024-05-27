@@ -104,6 +104,22 @@ contains
         case(7)
             RTI%locations(1:3,sample%vindex) = sample%coord
             RTI%locations(4,sample%vindex) = sample%values(1)
+        ! evcano:  new noise parameters
+        case(8)
+            RTI%srgnoise0(sample%vindex) = sample%noise0
+            RTI%srgnoise1(sample%vindex) = sample%noise1
+
+        case (9)
+            RTI%srpnoise0(sample%vindex) = sample%noise0
+            RTI%srpnoise1(sample%vindex) = sample%noise1
+
+        case (10)
+            RTI%slgnoise0(sample%vindex) = sample%noise0
+            RTI%slgnoise1(sample%vindex) = sample%noise1
+
+        case (11)
+            RTI%slpnoise0(sample%vindex) = sample%noise0
+            RTI%slpnoise1(sample%vindex) = sample%noise1
 
         case default
             call exception_raiseError("wrong proposal type (1 for birth, 2&
