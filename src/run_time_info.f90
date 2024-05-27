@@ -309,6 +309,15 @@ contains
         read(iunit,*) RTI%temperature_indices
         read(iunit,*) RTI%temperature_values
         read(iunit,*) RTI%num_bad_model, RTI%num_bad_ray
+        ! evcano: new noise parameters
+        read(iunit,*) RTI%srgnoise0
+        read(iunit,*) RTI%srgnoise1
+        read(iunit,*) RTI%srpnoise0
+        read(iunit,*) RTI%srpnoise1
+        read(iunit,*) RTI%slgnoise0
+        read(iunit,*) RTI%slgnoise1
+        read(iunit,*) RTI%slpnoise0
+        read(iunit,*) RTI%slpnoise1
         close(iunit)
         return
     end subroutine
@@ -332,6 +341,15 @@ contains
         write(iunit,*) RTI%temperature_indices
         write(iunit,*) RTI%temperature_values
         write(iunit,*) RTI%num_bad_model, RTI%num_bad_ray
+        ! evcano: new noise parameters
+        write(iunit,*) RTI%srgnoise0
+        write(iunit,*) RTI%srgnoise1
+        write(iunit,*) RTI%srpnoise0
+        write(iunit,*) RTI%srpnoise1
+        write(iunit,*) RTI%slgnoise0
+        write(iunit,*) RTI%slgnoise1
+        write(iunit,*) RTI%slpnoise0
+        write(iunit,*) RTI%slpnoise1
         close(iunit)
         return
     end subroutine
