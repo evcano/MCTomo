@@ -22,7 +22,7 @@ module read_write
     public :: write_temperatures
     public :: read_temperatures
     public :: read_temperatures0
-    public :: write_data, write_atimes
+    public :: write_data, write_atimes, write_atimes_2
     public :: write_src_samples
 
 
@@ -123,6 +123,19 @@ contains
         do i = 1, size(RTI%snoise0)
             write(iunit,*) RTI%snoise0(i), RTI%snoise1(i)
         enddo
+        ! evcano: new noise parameters
+        do i = 1, size(RTI%srgnoise0)
+            write(iunit,*) RTI%srgnoise0(i), RTI%srgnoise1(i)
+        enddo
+        do i = 1, size(RTI%srpnoise0)
+            write(iunit,*) RTI%srpnoise0(i), RTI%srpnoise1(i)
+        enddo
+        do i = 1, size(RTI%slgnoise0)
+            write(iunit,*) RTI%slgnoise0(i), RTI%slgnoise1(i)
+        enddo
+        do i = 1, size(RTI%slpnoise0)
+            write(iunit,*) RTI%slpnoise0(i), RTI%slpnoise1(i)
+        enddo
         close(iunit)
         return
 
@@ -141,6 +154,19 @@ contains
         enddo
         do i = 1, nsigma2
             read(iunit,*) RTI%snoise0(i), RTI%snoise1(i)
+        enddo
+        ! evcano: read new noise paramters (it seems this function is not used anyway)
+        do i = 1, nsigma2
+            read(iunit,*) RTI%srgnoise0(i), RTI%srgnoise1(i)
+        enddo
+        do i = 1, nsigma2
+            read(iunit,*) RTI%srpnoise0(i), RTI%srpnoise1(i)
+        enddo
+        do i = 1, nsigma2
+            read(iunit,*) RTI%slgnoise0(i), RTI%slgnoise1(i)
+        enddo
+        do i = 1, nsigma2
+            read(iunit,*) RTI%slpnoise0(i), RTI%slpnoise1(i)
         enddo
         close(iunit)
         return
@@ -479,6 +505,12 @@ contains
             call write_atimes(filename//'_body.dat',dat(1),RTI,likelihoods(1))
             ! write data for surface waves
             call write_atimes(filename//'_surf.dat',dat(2),RTI,likelihoods(2))
+        ! evcano: write rgrp,rpha,lgrp and lpha
+        case (4)
+            call write_atimes_2(filename//'_surf_rg.dat',dat(1),RTI,likelihoods(1),1)
+            call write_atimes_2(filename//'_surf_rp.dat',dat(2),RTI,likelihoods(1),2)
+            call write_atimes_2(filename//'_surf_lg.dat',dat(3),RTI,likelihoods(2),1)
+            call write_atimes_2(filename//'_surf_lp.dat',dat(4),RTI,likelihoods(2),2)
         end select
     end subroutine write_data
 
@@ -561,4 +593,81 @@ contains
 
     end subroutine
 
+    ! evcano: routine to write group or phase meaurements
+    subroutine write_atimes_2(filename,dat,RTI,like,vtype)
+        implicit none
+        character( len=* ), intent(in)  :: filename
+        type(T_DATA), intent(in)        :: dat
+        type(T_RUN_INFO), intent(in)    :: RTI
+        type(T_LIKE_BASE), intent(in)   :: like
+
+        ! local variable
+        integer, parameter :: yesrays = 1, norays =  0
+        integer i, j, k !iterator
+        integer npairs
+        integer nsrc, nrev
+        integer iunit1, iostatus
+        integer, intent(in)  ::  vtype
+
+        open(unit=newunit(iunit1), file = filename, status = 'unknown', action='write', iostat = iostatus )
+        if( iostatus /= 0 )then
+            call exception_raiseError( 'error when open the file: ' // filename )
+        endif
+
+        write(iunit1,*) dat%np
+        write(iunit1,*) dat%freqs
+
+        nsrc = dat%nsrc
+        nrev = dat%nrev
+
+        npairs = 0
+
+        select case (vtype)
+        ! group
+        case (1)
+            do i = 1, nsrc
+               do j = 1, nrev
+                  npairs = npairs + 1
+                  if( any(dat%raystat(npairs,1,:)==1) ) then
+                      write(iunit1,*) yesrays
+                  else
+                      write(iunit1,*) norays
+                      cycle
+                  endif
+
+                  do k = 1, dat%np
+                      if( dat%raystat(npairs,1,k)==1 ) then
+                          write(iunit1,*) like%groupTime(j,i,k)+RTI%locations(4,i), like%sigmaGroup(npairs,k)
+                      else
+                          write(iunit1,*) like%groupTime(j,i,k), like%sigmaGroup(npairs,k)
+                      endif
+                  enddo
+               enddo
+            enddo
+        ! phase
+        case (2)
+            do i = 1, nsrc
+               do j = 1, nrev
+                  npairs = npairs + 1
+                  if( any(dat%raystat(npairs,1,:)==1) ) then
+                      write(iunit1,*) yesrays
+                  else
+                      write(iunit1,*) norays
+                      cycle
+                  endif
+
+                  do k = 1, dat%np
+                      if( dat%raystat(npairs,1,k)==1 ) then
+                          write(iunit1,*) like%phaseTime(j,i,k)+RTI%locations(4,i), like%sigmaPhase(npairs,k)
+                      else
+                          write(iunit1,*) like%phaseTime(j,i,k), like%sigmaPhase(npairs,k)
+                      endif
+                  enddo
+               enddo
+            enddo
+        end select
+
+        close(iunit1)
+
+    end subroutine
 end module
