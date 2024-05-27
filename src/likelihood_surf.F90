@@ -745,7 +745,6 @@ contains
             do j = 1, nsrc
                 do k = 1, nrev
                     nrr = nrr + 1
-
                     ! group velocity
                     if(datGroup%raystat(nrr,1,i) == 1) then
                         if (like%sigmaGroup(nrr,i)==0) then
@@ -781,7 +780,6 @@ contains
                     else
                         like%sigmaPhase(nrr,i) = 1.0
                     endif
-
                 enddo
             enddo
         enddo
@@ -800,10 +798,9 @@ contains
         return
     end subroutine surf_noise_likelihood_2
 
-    subroutine surf_likelihood_2(dat,model,RTI,perturbed_box,settings,like)
-    
+    subroutine surf_likelihood_2(datGroup,datPhase,model,RTI,perturbed_box,settings,like,raylov)
         implicit none
-        type(T_DATA), intent(in)                    :: dat
+        type(T_DATA), intent(in)                    :: datGroup, datPhase
         type(T_MOD), intent(inout)                  :: model
         type(T_RUN_INFO), intent(inout)             :: RTI
         type(d3), dimension(2), intent(in)          :: perturbed_box
@@ -829,18 +826,25 @@ contains
         real( kind=ii10 ) band
     
         ! > local variable for travel times and rays
-        integer nsrc, nrev
+        integer nsrc, nrev, np
         integer, dimension(:), allocatable :: crazyray
         type(T_RAY), dimension(:,:), allocatable           :: phaseRays
+
+        ! > local variable to store the ray-state of group and phase measurements
+        integer, dimension(:,:), allocatable  ::  raystat_GP
 
         ! > local grid
         type(T_GRID) :: grid
 
+        integer, intent(in) :: raylov
         integer nrr
         integer i, j, k
 
-        nsrc = dat%nsrc
-        nrev = dat%nrev
+        ! evcano: at this point, nsrc,nrev, and np should be the same for datGroup and datPhase
+        !         also, dat%freqs should be the same!!
+        nsrc = datGroup%nsrc
+        nrev = datGroup%nrev
+        np = datGroup%np
         grid = settings%grid
 
         ! first, calculate dispersion curve grid by grid
@@ -863,10 +867,17 @@ contains
         call convert_to_layer( model, grid, ix0, ix1, iy0, iy1, layer )
 
         ! first set up the parameters for surface modes code
-        ! evcano: this needs to be changed
-        ! evcano: modetype: 1 is rayleigh, 0 is love; phaseGroup 0 is phase, >0 is group and phase
-        paras%modetype = settings%raylov
-        paras%phaseGroup = settings%phaseGroup
+        ! evcano: see line 24 surfmodes.f90
+        select case (raylov)
+        ! rayleigh waves
+        case (1)
+            paras%modetype = 1
+        ! love waves
+        case (2)
+            paras%modetype = 0
+        end select
+        ! evcano: phaseGroup=1 makes surfmodes to output group and phase velocities (line 315 surfdisp96.f)
+        paras%phaseGroup = 1
         paras%tolmin = settings%tol
         paras%tolmax = 10*settings%tol
         paras%smin_min = 1E-3
@@ -878,8 +889,8 @@ contains
         ! calculate dispersion curve
         ! TODO: currently, discard any velocity model which could not produce
         ! surface waves in one or more frequencies
-        allocate( pvel(dat%np, iy0:iy1, ix0:ix1) )
-        allocate( gvel(dat%np, iy0:iy1, ix0:ix1) )
+        allocate( pvel(np, iy0:iy1, ix0:ix1) )
+        allocate( gvel(np, iy0:iy1, ix0:ix1) )
         pvel = 100.0 ! safe
         gvel = 100.0 ! safe
         allocate( ierr(iy0:iy1,ix0:ix1) )
@@ -894,7 +905,7 @@ contains
         do i = ix0, ix1
             do j = iy0, iy1
                 call surfmodes(layer(j,i)%thick,layer(j,i)%alpha,layer(j,i)%beta, &
-                    layer(j,i)%rho,dat%freqs,paras,pvel(:,j,i),gvel(:,j,i),ierr(j,i))
+                    layer(j,i)%rho,datGroup%freqs,paras,pvel(:,j,i),gvel(:,j,i),ierr(j,i))
             enddo
         enddo
         !$omp end do
@@ -918,26 +929,13 @@ contains
             return
         endif
 
-        ! phase/group velocity
-        ! evcano: modify this so both %vel and %gvel are assigned
-        if(settings%phaseGroup == 1)then
-            like%gvel(:,iy0:iy1, ix0:ix1) = gvel
-        else
-            like%gvel(:,iy0:iy1, ix0:ix1) = pvel
-        endif
+        ! evcano: always assign group velocity
+        like%gvel(:,iy0:iy1, ix0:ix1) = gvel
 
         ! if using straight rays
-        ! evcano: TODO: raise expetion if straightrays were to be used
+        ! evcano: raise expetion if straightrays were to be used
         if(settings%isStraight == 1)then
-            if(.not.like%straightRaySet)then
-                allocate( like%rays(dat%nsrc*dat%nrev, dat%np) )
-                like%rays%srcid = 0
-                like%rays%revid = 0
-                like%rays%npoints = 0
-                call setup_straightRays(dat, grid, like%rays,like%srdist)
-                like%straightRaySet = .true.
-            endif
-            call CalGroupTime(like%gvel,grid,like%rays,like%phaseTime)
+            call exception_raiseError('straight rays cannot be used if LIKE_SET%DATATYPE=4')
         else
             ! calculate travel time of rayleigh/love wave using fast marching code
             ! settings
@@ -948,11 +946,17 @@ contains
             sgext = settings%sgext
             order = settings%order
             band  = settings%band
-            !uar   = settings%uar
-            uar   = abs(settings%phaseGroup-1)
-
+            ! evcano: uar to 0 so we always compute rays (line 445 fm2dray_cartesian.f90)
+            uar   = 0
 
             ! prepare velocity model for the fast marching code
+
+            ! evcano: According to Zhang etal 2018, fast marching code is always
+            ! ran using phase-velocity model. Phase-traveltimes are obtained from
+            ! the computed traveltime field. Group-traveltimes are obtained by
+            ! integrating the group-velocity model along rays derived from the
+            ! traveltime field.
+
             like%vel(:, iy0+1:iy1+1, ix0+1:ix1+1) = pvel
             ! assign boundary value
             if(ix0==1) like%vel(:,:,1) = like%vel(:,:,2)
@@ -970,7 +974,7 @@ contains
             if(idx1>grid%nx) idx1 = grid%nx
             if(idy1>grid%ny) idy1 = grid%ny
             if(settings%dynamic == 2)then
-                do i = 1, dat%np
+                do i = 1, np
                     do j = 1, nsrc
                         like%btime(j,i) = &
                         minval(like%field4d(idy0:idy1,idx0:idx1,j,i))
@@ -978,14 +982,18 @@ contains
                 enddo
             endif
 
+            ! evcano: datGroup and datPhase share receivers and sources but have different ray status.
+            !         We merge the ray status of datGroup and datPhase in raystat_GP. 1st col is the
+            !         state (0 or 1), 2nd col is the ray number.
+            ! evcano: dangerpoint
+            allocate( raystat_GP(nsrc*nrev,2) )
+
             ! call modrays to calculate travel times
-            ! TODO evcano: i need to merge the raystat of both group and phase measurements to consider all required rays
-            ! TODO: evcano: srdist must be the same for group and phase measurements
-            allocate( phaseRays(dat%nrev*dat%nsrc, dat%np) )
+            allocate( phaseRays(nrev*nsrc, np) )
             phaseRays%srcid = 0
             phaseRays%revid = 0
             phaseRays%npoints = 0
-            allocate( crazyray(dat%np) )
+            allocate( crazyray(np) )
             crazyray = 0
 #ifdef _OPENMP
             t1 = omp_get_wtime ( )
@@ -993,12 +1001,15 @@ contains
 #endif
             !$omp parallel
             !$omp do private(nrr,i,j,k)
-            do i = 1, dat%np 
+            do i = 1, np
+                raystat_GP = datGroup%raystat(:,:,i) + datPhase%raystat(:,:,i)
+                where(raystat_GP .eq. 2) raystat_GP = 1
+
                 !if( .not.allocated(ttime) ) allocate( ttime(nrev, nsrc) )
                 if(settings%dynamic == 2)then
-                    call modrays(nsrc,dat%src(1,:),dat%src(2,:), &
-                            nrev,dat%rev(1,:),dat%rev(2,:), &
-                        dat%raystat(:,:,i),0, &
+                    call modrays(nsrc,datGroup%src(1,:),datGroup%src(2,:), &
+                        nrev,datGroup%rev(1,:),datGroup%rev(2,:), &
+                        raystat_GP,0, &
                         grid%nx,grid%ny,grid%xmin,grid%ymin,&
                         grid%dx,grid%dy,like%vel(i,:,:), &
                         gridx,gridy,sgref, &
@@ -1007,9 +1018,9 @@ contains
                         phaseRays(:,i),crazyray(i),uar,&
                         like%field4d(:,:,:,i),like%btime(:,i))
                 else
-                    call modrays(nsrc,dat%src(1,:),dat%src(2,:), &
-                            nrev,dat%rev(1,:),dat%rev(2,:), &
-                        dat%raystat(:,:,i),0, &
+                    call modrays(nsrc,datGroup%src(1,:),datGroup%src(2,:), &
+                        nrev,datGroup%rev(1,:),datGroup%rev(2,:), &
+                        raystat_GP,0, &
                         grid%nx,grid%ny,grid%xmin,grid%ymin,&
                         grid%dx,grid%dy,like%vel(i,:,:), &
                         gridx,gridy,sgref, &
@@ -1019,14 +1030,13 @@ contains
                 endif
 
                 ! allocate and storage the ray info
+                ! evcano: we parametrize the noise of both group and phase measurements
+                !         using the ray length
+                ! evcano: if a ray is not computed, its length is 0 (line 51 fm2ray_cartesian.f90) 
                 do j = 1, nsrc
                     do k = 1, nrev
                         nrr = k + (j-1)*nrev
-                        if(settings%phaseGroup ==1)then
-                            like%srdist(nrr,i) = phaseRays(nrr,i)%length()
-                        else
-                            like%srdist(nrr,i) = like%phaseTime(k,j,i)
-                        endif
+                        like%srdist(nrr,i) = phaseRays(nrr,i)%length()
                     enddo
                 enddo
             enddo
@@ -1043,70 +1053,98 @@ contains
                 return
             endif
 
-            ! if group
-            if(settings%phaseGroup == 1)then
-                ! calculate group delay along rays
-                call CalGroupTime(like%gvel,grid,phaseRays,like%phaseTime)
-            endif
+            ! calculate group traveltime along rays
+            ! evcano: dangerpoint
+            call CalGroupTime(like%gvel,grid,phaseRays,like%groupTime)
         endif
 
-        ! likelihood
-        ! noise level
-        ! evcano TODO: sigmaGroup and sigmaPhase need to be set here
-        if(settings%sigdep /= 0)then
-            do i = 1, dat%np
-                nrr  = 0
-                do j = 1, nsrc
-                    do k = 1, nrev
-                        nrr = nrr + 1
-                        if(dat%raystat(nrr,1,i) == 1) then
-                            like%sigma(nrr,i) = RTI%snoise0(i)*like%srdist(nrr,i) + RTI%snoise1(i) 
-                        else
-                            like%sigma(nrr,i) = 1.0
-                        endif
-                    enddo
+        ! update sigma 
+        if (settings%sigdep /= 0) then
+            select case (raylov)
+            ! rayleigh waves
+            case (1)
+                do i = 1, np
+                    like%sigmaGroup(:,i) = RTI%srgnoise0(i)*like%srdist(:,i) + RTI%srgnoise1(i)
+                    like%sigmaPhase(:,i) = RTI%srpnoise0(i)*like%srdist(:,i) + RTI%srpnoise1(i)
                 enddo
-            enddo
+            ! love waves
+            case (2)
+                do i = 1, np
+                    like%sigmaGroup(:,i) = RTI%slgnoise0(i)*like%srdist(:,i) + RTI%slgnoise1(i)
+                    like%sigmaPhase(:,i) = RTI%slpnoise0(i)*like%srdist(:,i) + RTI%slpnoise1(i)
+                enddo
+            end select
         else
-            like%sigma = dat%ttime(:,2,:)
+            like%sigmaGroup = datGroup%ttime(:,2,:)
+            like%sigmaPhase = datPhase%ttime(:,2,:)
         endif
 
-        !if(any(like%sigma==0))then
-        !    call exception_raiseError('The noise level is 0!')
-        !endif
+        ! update likelihood and misfits
+        like%likeGroup = 0
+        like%misfitGroup = 0
+        like%unweighted_misfitGroup = 0
 
-        ! evcano TODO: need to combine likelihood of group and phase measurements
-        like%like = 0
-        like%misfit = 0
-        like%unweighted_misfit = 0
-        do i = 1, dat%np
+        like%likePhase = 0
+        like%misfitPhase = 0
+        like%unweighted_misfitPhase = 0
+
+        do i = 1, np
             nrr  = 0
             do j = 1, nsrc
                    do k = 1, nrev
                     nrr = nrr + 1
-                    if(dat%raystat(nrr,1,i) == 1) then
-                        if(like%sigma(nrr,i)<EPS)then
-                            !print * , k, j, i, like%sigma(nrr,i), like%srdist(nrr,i)
+
+                    ! group velocity
+                    if(datGroup%raystat(nrr,1,i) == 1) then
+                        if(like%sigmaGroup(nrr,i)<EPS)then
                             call exception_raiseError('The noise level is 0!')
                         endif
-                        like%like = like%like + ( like%phaseTime(k,j,i)-dat%ttime(nrr,1,i)&
-                            )**2/( 2*(like%sigma(nrr,i))**2 )
-                        like%misfit = like%misfit + ( like%phaseTime(k,j,i)-dat%ttime(nrr,1,i)&
-                            )**2/(like%sigma(nrr,i)**2)
-                        like%unweighted_misfit = like%unweighted_misfit + ( like%phaseTime(k,j,i)-dat%ttime(nrr,1,i)&
-                            )**2
+
+                        like%likeGroup = like%likeGroup + ( like%groupTime(k,j,i)-datGroup%ttime(nrr,1,i)&
+                            )**2/( 2*(like%sigmaGroup(nrr,i))**2 )
+
+                        like%misfitGroup = like%misfitGroup + ( like%groupTime(k,j,i)-datGroup%ttime(nrr,1,i)&
+                            )**2/(like%sigmaGroup(nrr,i)**2)
+
+                        like%unweighted_misfitGroup = like%unweighted_misfitGroup + &
+                            ( like%groupTime(k,j,i)-datGroup%ttime(nrr,1,i) )**2
                     else
-                        like%sigma(nrr,i) = 1.0
+                        like%sigmaGroup(nrr,i) = 1.0
+                    endif
+
+                    ! phase velocity
+                    if(datPhase%raystat(nrr,1,i) == 1) then
+                        if(like%sigmaPhase(nrr,i)<EPS)then
+                            call exception_raiseError('The noise level is 0!')
+                        endif
+
+                        like%likePhase = like%likePhase + ( like%phaseTime(k,j,i)-datPhase%ttime(nrr,1,i)&
+                            )**2/( 2*(like%sigmaPhase(nrr,i))**2 )
+
+                        like%misfitPhase = like%misfitPhase + ( like%phaseTime(k,j,i)-datPhase%ttime(nrr,1,i)&
+                            )**2/(like%sigmaPhase(nrr,i)**2)
+
+                        like%unweighted_misfitPhase= like%unweighted_misfitPhase + &
+                            ( like%phaseTime(k,j,i)-datPhase%ttime(nrr,1,i) )**2
+                    else
+                        like%sigmaPhase(nrr,i) = 1.0
                     endif
                 enddo
             enddo
         enddo
 
-        like%like = like%like + sum(log(like%sigma)) + dat%nrays/2.0 * log(PI2)
-        if(like%like/=like%like)then
-            print *, like%sigma
+        if(any(like%sigmaGroup<EPS))then
+            call exception_raiseError('The noise level is 0!')
         endif
-        return
 
-    end subroutine surf_likelihood
+        if(any(like%sigmaPhase<EPS))then
+            call exception_raiseError('The noise level is 0!')
+        endif
+
+        ! finish loglikelihood computation
+        like%likeGroup = like%likeGroup + sum(log(like%sigmaGroup)) + datGroup%nrays/2.0 * log(PI2)
+        like%likePhase = like%likePhase + sum(log(like%sigmaPhase)) + datPhase%nrays/2.0 * log(PI2)
+
+        return
+    end subroutine surf_likelihood_2
 end module m_surf_likelihood
