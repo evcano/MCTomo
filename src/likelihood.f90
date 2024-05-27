@@ -9,7 +9,8 @@ module m_likelihood
     use like_settings,     only : T_DATA, T_LIKE_BASE, T_LIKE_SET, likeBaseSetup
     use cgal_delaunay,     only : d3
     use m_body_likelihood, only : body_likelihood, body_likelihood_grads, body_noise_likelihood, body_location_likelihood
-    use m_surf_likelihood, only : surf_likelihood, surf_noise_likelihood, surf_likelihood_grads, surf_noise_likelihood_2
+    use m_surf_likelihood, only : surf_likelihood, surf_noise_likelihood, surf_likelihood_grads, surf_noise_likelihood_2, &
+                                  surf_likelihood_2
 
     implicit none
 
@@ -101,10 +102,25 @@ contains
             like%like = like%likelihoods(1)%like + like%likelihoods(2)%like
             like%misfit = like%likelihoods(1)%misfit + like%likelihoods(2)%misfit
             like%unweighted_misfit = like%likelihoods(1)%unweighted_misfit + like%likelihoods(2)%unweighted_misfit
-        ! evcano: TODO add case 4
-        ! probably good to create new surf_likelihood function that evaluates group and phase measurements simultaneously
-        ! and then call it twice, one for love and other for rayleigh
-        ! thus, i need to modify like%likelihoods so it holds two, one for rayleigh (group+phase) and other for love(group+phase)
+        ! evcano:  rgrp,rpha,lgrp, and lpha
+        case (4)
+            ! only surface waves are used, set the vp according to vs and
+            ! density according to vp
+            call vs2vp_3d(model%vs,model%vp)
+            call vp2rho_3d(model%vp,model%rho)
+            ! likelihood of rayleigh-group and rayleigh-phase measurements
+            call surf_likelihood_2(dat(1),dat(2),model,RTI,perturbed_box,like_set,like%likelihoods(1),1)
+            ! likelihood of love-group and love-phase measurements
+            call surf_likelihood_2(dat(3),dat(4),model,RTI,perturbed_box,like_set,like%likelihoods(2),2)
+
+            like%like = like%likelihoods(1)%likeGroup + like%likelihoods(1)%likePhase + &
+                like%likelihoods(2)%likeGroup + like%likelihoods(2)%likePhase
+
+            like%misfit = like%likelihoods(1)%misfitGroup + like%likelihoods(1)%misfitPhase + &
+                like%likelihoods(2)%misfitGroup + like%likelihoods(2)%misfitPhase
+
+            like%unweighted_misfit = like%likelihoods(1)%unweighted_misfitGroup + like%likelihoods(1)%unweighted_misfitPhase + &
+                like%likelihoods(2)%unweighted_misfitGroup + like%likelihoods(2)%unweighted_misfitPhase
         end select
 
         !write(*,*) '-loglikelihood: ', like%like
