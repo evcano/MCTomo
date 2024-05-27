@@ -87,6 +87,12 @@ contains
         real(kdkind), dimension(3,mcmc_set%ncell_max)   :: points_copy, parameters_copy
         real(c_double), dimension(:), allocatable       :: bnoise0_copy, bnoise1_copy
         real(c_double), dimension(:), allocatable       :: snoise0_copy, snoise1_copy
+        ! evcano: new noise parameters
+        real(c_double), dimension(:), allocatable       :: srgnoise0_copy, srgnoise1_copy
+        real(c_double), dimension(:), allocatable       :: srpnoise0_copy, srpnoise1_copy
+        real(c_double), dimension(:), allocatable       :: slgnoise0_copy, slgnoise1_copy
+        real(c_double), dimension(:), allocatable       :: slpnoise0_copy, slpnoise1_copy
+        ! evcano: finish
         real(c_double), dimension(:,:), allocatable     :: sources_copy
         type(c_ptr)                                     :: delaunay_ptr_copy
         type(T_GRID)                                    :: grid
@@ -200,6 +206,16 @@ contains
             model_copy = model
             like_copy = like
             ncells_copy = RTI%ncells
+
+            ! evcano: backup new noise parameters
+            srgnoise0_copy = RTI%srgnoise0
+            srgnoise1_copy = RTI%srgnoise1
+            srpnoise0_copy = RTI%srpnoise0
+            srpnoise1_copy = RTI%srpnoise1
+            slgnoise0_copy = RTI%slgnoise0
+            slgnoise1_copy = RTI%slgnoise1
+            slpnoise0_copy = RTI%slpnoise0
+            slpnoise1_copy = RTI%slpnoise1
 
             ! initial some values, eg. logical accepted, propose type, random number
             accepted = .false.
@@ -624,6 +640,15 @@ contains
                 RTI%locations = sources_copy
                 RTI%ncells = ncells_copy
                 RTI%sites_id = sites_id_copy
+                ! evcano: new noise parameters
+                RTI%srgnoise0 = srgnoise0_copy
+                RTI%srgnoise1 = srgnoise1_copy
+                RTI%srpnoise0 = srpnoise0_copy
+                RTI%srpnoise1 = srpnoise1_copy
+                RTI%slgnoise0 = slgnoise0_copy
+                RTI%slgnoise1 = slgnoise1_copy
+                RTI%slpnoise0 = slpnoise0_copy
+                RTI%slpnoise1 = slpnoise1_copy
             endif
 
             ! debug
