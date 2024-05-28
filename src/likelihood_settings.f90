@@ -231,18 +231,22 @@ contains
             call read_sources(like_set%ssources_file,dat(1)%src,bnd)
             call read_sources(like_set%sreceivers_file,dat(1)%rev,bnd)
             call read_times_3(like_set%sdata_rg_file,dat(1))
+            dat(1)%datatype = 1
             ! rayleigh phase
             call read_sources(like_set%ssources_file,dat(2)%src,bnd)
             call read_sources(like_set%sreceivers_file,dat(2)%rev,bnd)
             call read_times_3(like_set%sdata_rp_file,dat(2))
+            dat(2)%datatype = 1
             ! love group
             call read_sources(like_set%ssources_file,dat(3)%src,bnd)
             call read_sources(like_set%sreceivers_file,dat(3)%rev,bnd)
             call read_times_3(like_set%sdata_lg_file,dat(3))
+            dat(3)%datatype = 1
             ! love phase
             call read_sources(like_set%ssources_file,dat(4)%src,bnd)
             call read_sources(like_set%sreceivers_file,dat(4)%rev,bnd)
             call read_times_3(like_set%sdata_lp_file,dat(4))
+            dat(4)%datatype = 1
         end select
     end subroutine read_data
 
