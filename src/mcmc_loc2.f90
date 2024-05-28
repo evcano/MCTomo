@@ -120,7 +120,7 @@ contains
         integer           :: iter, countFM, nthin, i, j, k
         integer           :: accDepMv, totalDepMv, accDepV, totalDepV
         integer           :: accUpMv, totalUpMv, accUpV, totalUpV
-        integer, dimension(7) :: accNum, totalNum
+        integer, dimension(11) :: accNum, totalNum
 
         ! source locations
         real(kind=ii10), dimension(:,:,:), allocatable  :: src_samples
@@ -745,6 +745,14 @@ contains
                 call log_msg( 'Bad rays '//rtoa(RTI%num_bad_ray/real(RTI%sampletotal,kind=ii10)) )
                 ! evcano: new log information
                 if (mcmc_set%datatype .eq. 4) then
+                    call log_msg( 'Acceptance rate for rayleigh-group sigma' )
+                    call log_msg( 'ARS '//rtoa(accNum(8)/real(totalNum(8),kind=ii10)) )
+                    call log_msg( 'Acceptance rate for rayleigh-phase sigma' )
+                    call log_msg( 'ARS '//rtoa(accNum(9)/real(totalNum(9),kind=ii10)) )
+                    call log_msg( 'Acceptance rate for love-group sigma' )
+                    call log_msg( 'ARS '//rtoa(accNum(10)/real(totalNum(10),kind=ii10)) )
+                    call log_msg( 'Acceptance rate for love-phase sigma' )
+                    call log_msg( 'ARS '//rtoa(accNum(11)/real(totalNum(11),kind=ii10)) )
                     call log_msg( 'Rayleigh-group weighted misfit '//rtoa(like%likelihoods(1)%misfitGroup) )
                     call log_msg( 'Rayleigh-phase weighted misfit '//rtoa(like%likelihoods(1)%misfitPhase) )
                     call log_msg( 'Love-group weighted misfit '//rtoa(like%likelihoods(2)%misfitGroup) )
