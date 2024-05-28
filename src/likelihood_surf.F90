@@ -856,7 +856,8 @@ contains
 
         ! check model, discard those the top layer is not smallest
         if(check_model(model%vs))then
-            like%like = huge(like%like)
+            like%likeGroup = huge(like%likeGroup)
+            like%likePhase = huge(like%likePhase)
             return
         endif
 
@@ -924,7 +925,8 @@ contains
             if(ix1==grid%nx) like%vel(:,:,grid%nx+2) = like%vel(:,:,grid%nx+1)
             if(iy0==1) like%vel(:,1,:) = like%vel(:,2,:)
             if(iy1==grid%ny) like%vel(:,grid%ny+2,:) = like%vel(:,grid%ny+1,:)
-            like%like = huge(like%like)
+            like%likeGroup = huge(like%likeGroup)
+            like%likePhase = huge(like%likePhase)
             RTI%num_bad_model = RTI%num_bad_model + 1
             return
         endif
