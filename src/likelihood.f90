@@ -81,6 +81,9 @@ contains
         type(T_LIKE_SET), intent(in)                :: like_set
         type(T_LIKE), intent(inout)                 :: like
 
+        ! static value
+        real(kind=ii10), parameter :: eps = 1e-8
+
         select case (like_set%datatype)
         case (0,1)
             call body_likelihood(dat(1),model,RTI,perturbed_box,like_set,like%likelihoods(1))
@@ -108,19 +111,37 @@ contains
             ! density according to vp
             call vs2vp_3d(model%vs,model%vp)
             call vp2rho_3d(model%vp,model%rho)
-            ! likelihood of rayleigh-group and rayleigh-phase measurements
+
+            ! compute likelihood of rayleigh-group and rayleigh-phase measurements
             call surf_likelihood_2(dat(1),dat(2),model,RTI,perturbed_box,like_set,like%likelihoods(1),1)
-            ! likelihood of love-group and love-phase measurements
-            call surf_likelihood_2(dat(3),dat(4),model,RTI,perturbed_box,like_set,like%likelihoods(2),2)
 
-            like%like = like%likelihoods(1)%likeGroup + like%likelihoods(1)%likePhase + &
-                like%likelihoods(2)%likeGroup + like%likelihoods(2)%likePhase
+            ! check if the model was rejected during computation of rayleigh-wave likelihood
+            if (abs(like%likelihoods(1)%likeGroup-huge(like%likelihoods(1)%likeGroup))<eps) then
+                ! if the model was rejected, we set a huge likelihood value
+                like%like = huge(like%like)
+                like%misfit = huge(like%misfit)
+                like%unweighted_misfit = huge(like%unweighted_misfit)
+            else
+                ! compute likelihood of love-group and love-phase measurements
+                call surf_likelihood_2(dat(3),dat(4),model,RTI,perturbed_box,like_set,like%likelihoods(2),2)
 
-            like%misfit = like%likelihoods(1)%misfitGroup + like%likelihoods(1)%misfitPhase + &
-                like%likelihoods(2)%misfitGroup + like%likelihoods(2)%misfitPhase
+                ! check if the model was rejected during computation of love-wave likelihood
+                if (abs(like%likelihoods(2)%likeGroup-huge(like%likelihoods(2)%likeGroup))<eps) then
+                    like%like = huge(like%like)
+                    like%misfit = huge(like%misfit)
+                    like%unweighted_misfit = huge(like%unweighted_misfit)
+                else
+                    like%like = like%likelihoods(1)%likeGroup + like%likelihoods(1)%likePhase + &
+                        like%likelihoods(2)%likeGroup + like%likelihoods(2)%likePhase
 
-            like%unweighted_misfit = like%likelihoods(1)%unweighted_misfitGroup + like%likelihoods(1)%unweighted_misfitPhase + &
-                like%likelihoods(2)%unweighted_misfitGroup + like%likelihoods(2)%unweighted_misfitPhase
+                    like%misfit = like%likelihoods(1)%misfitGroup + like%likelihoods(1)%misfitPhase + &
+                        like%likelihoods(2)%misfitGroup + like%likelihoods(2)%misfitPhase
+
+                    like%unweighted_misfit = like%likelihoods(1)%unweighted_misfitGroup + &
+                        like%likelihoods(1)%unweighted_misfitPhase + &
+                        like%likelihoods(2)%unweighted_misfitGroup + like%likelihoods(2)%unweighted_misfitPhase
+                endif
+            endif
         end select
 
         !write(*,*) '-loglikelihood: ', like%like
