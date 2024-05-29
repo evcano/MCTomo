@@ -3,7 +3,7 @@
 module m_settings
 
     use iso_c_binding, only : c_size_t, c_int
-    use m_utils, only : ii10, STRLEN, itoa
+    use m_utils, only : ii10, STRLEN, itoa, newunit
     use m_exception,only : exception_raiseError
     use m_logger, only          : log_msg
     implicit none
@@ -25,11 +25,15 @@ module m_settings
         real( kind=ii10 ) :: dx, dy, dz
         real( kind=ii10 ) :: waterDepth
         real( kind=ii10 ) :: scaling
+        ! evcano: file to read variable water layer depth
+        character(len=STRLEN) :: waterFile
     endtype
 
     ! model
     type T_MOD
         real( kind=ii10 ), dimension(:,:,:), allocatable :: vp, vs, rho
+        ! evcano: water layer depth
+        real( kind=ii10 ), dimension(:,:), allocatable   :: wld
     end type T_MOD
 
     ! mcmc settings
@@ -154,6 +158,12 @@ contains
         model%vs = 1.0
         model%rho = 1.0
 
+        ! evcano: variable water layer depth
+        if (grid%waterFile .ne. 'FALSE') then
+            allocate( model%wld(grid%ny, grid%nx) )
+            call read_water_layer_file(grid%waterFile,model%wld,grid%ny,grid%nx)
+        endif
+
     end subroutine mod_setup
 
     logical function out_bnd(coord, bnd)
@@ -247,5 +257,28 @@ contains
         mcmc_set%src_mass = 1
 
     endsubroutine
+
+    subroutine read_water_layer_file(waterFile,wld,ny,nx)
+        character(len=STRLEN), intent(in) :: waterFile
+        real(kind=ii10), dimension(:,:), intent(inout) :: wld
+        integer, intent(in) :: ny,nx
+
+        ! local
+        integer iunit1, iostatus
+        integer i, j
+
+        open(unit=newunit(iunit1), file=waterFile, status='old', iostat=iostatus)
+        if (iostatus /= 0) then
+            call exception_raiseError('error when open the water layer file: '// waterFile)
+        endif
+
+        do i=1,nx
+            do j=1,ny
+                read(iunit1,*) wld(j,i)
+            enddo
+        enddo
+
+        close(iunit1)
+    end subroutine
 
 end module
