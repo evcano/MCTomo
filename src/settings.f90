@@ -259,6 +259,8 @@ contains
     endsubroutine
 
     subroutine read_water_layer_file(waterFile,wld,ny,nx)
+        implicit none
+
         character(len=STRLEN), intent(in) :: waterFile
         real(kind=ii10), dimension(:,:), intent(inout) :: wld
         integer, intent(in) :: ny,nx
