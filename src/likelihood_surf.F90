@@ -543,24 +543,13 @@ contains
         !$omp& private(beta,rho_k,thick)
         do i = ix0, ix1
             do j = iy0, iy1
-                ! TODO: maybe is better to always allocate wld and just check if its bigger than 0
                 ! evcano: variable water layer depth
-                if( grid%waterFile .ne. 'FALSE' ) then
-                    if (model%wld(j,i) > 0.0) then
-                        nlayers = 1
-                        alpha(1) = waterVel
-                        beta(1) = 0
-                        rho_k(1) = waterDensity
-                        thick(1) = model%wld(j,i)
-                    else
-                        nlayers = 0
-                    endif
-                elseif( grid%waterDepth>EPS )then
+                if (model%wld(j,i) > 0.0) then
                     nlayers = 1
                     alpha(1) = waterVel
                     beta(1) = 0
                     rho_k(1) = waterDensity
-                    thick(1) = grid%waterDepth
+                    thick(1) = model%wld(j,i)
                 else
                     nlayers = 0
                 endif
@@ -626,11 +615,7 @@ contains
                 layer(j,i)%rho(1:nlayers) = rho_k(1:nlayers)
                 layer(j,i)%thick(1:nlayers) = thick(1:nlayers)/grid%scaling
                 ! waterDepth deos not scale, need to be recovered
-                if(grid%waterFile .ne. 'FALSE') then
-                    if (model%wld(j,i) > 0.0) layer(j,i)%thick(1)=model%wld(j,i)
-                elseif (grid%waterDepth>0) then
-                    layer(j,i)%thick(1)=grid%waterDepth
-                endif
+                if (model%wld(j,i) > 0.0) layer(j,i)%thick(1)=model%wld(j,i)
 
                 !layer(j,i)%ax = 1
                 !layer(j,i)%ap = 1
