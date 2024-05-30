@@ -111,20 +111,32 @@ contains
         dim_rev=size(dat%rev,1)
         if(dim_rev>dim_src) call exception_raiseError('dimension of source is less than receiver')
 
+        ! these two variables are always used
         allocate( like%phaseTime(nrev,nsrc,dat%np*dat%nmodes) )
         allocate( like%srdist(nrev*nsrc,dat%np*dat%nmodes) )
-        allocate( like%sigma(nrev*nsrc,dat%np*dat%nmodes) )
-        ! evcano: allocate new variables
-        allocate( like%groupTime(nrev,nsrc,dat%np*dat%nmodes) )
-        allocate( like%sigmaGroup(nrev*nsrc,dat%np*dat%nmodes) )
-        allocate( like%sigmaPhase(nrev*nsrc,dat%np*dat%nmodes) )
+
+        like%phaseTime = 0.0
+        like%srdist = 1.0 ! safe
+
+        ! evcano: allocate variables if needed
+        if (set%datatype .eq. 4) then
+            allocate( like%groupTime(nrev,nsrc,dat%np*dat%nmodes) )
+            allocate( like%sigmaGroup(nrev*nsrc,dat%np*dat%nmodes) )
+            allocate( like%sigmaPhase(nrev*nsrc,dat%np*dat%nmodes) )
+
+            like%groupTime = 0.0
+            like%sigmaGroup = 1.0
+            like%sigmaPhase = 1.0
+        else
+            ! evcano: dangerpoint (to my knowledge, sigma wont be used)
+            allocate( like%sigma(nrev*nsrc,dat%np*dat%nmodes) )
+
+            like%sigma = 1.0 ! safe
+        endif
 
         like%like = 0
         like%misfit = 0
         like%unweighted_misfit = 0
-        like%phaseTime = 0.0
-        like%srdist = 1.0 ! safe
-        like%sigma = 1.0 ! safe
         like%straightRaySet = .false.
 
         ! evcano: initialise new variables
@@ -135,10 +147,6 @@ contains
         like%likePhase = 0
         like%misfitPhase = 0
         like%unweighted_misfitPhase = 0
-
-        like%groupTime = 0.0
-        like%sigmaGroup = 1.0
-        like%sigmaPhase = 1.0
 
         ! initialise source-receiver ray lenth using source-receiver distance
         do i = 1, dat%np*dat%nmodes
