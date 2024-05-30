@@ -23,6 +23,8 @@ module like_settings
         real( kind=ii10 ), dimension(:,:), allocatable   :: src
         real( kind=ii10 ), dimension(:,:), allocatable   :: rev
         integer, dimension(:,:,:), allocatable           :: raystat
+        ! evcano: this holds the raystat of both group and phase measurements
+        integer, dimension(:,:,:), allocatable           :: raystat2
         real( kind=ii10 ), dimension(:,:,:), allocatable :: ttime
         ! if body waves, for different types; if surface waves, for freqs
         real( kind=ii10 ), dimension(:), allocatable     :: freqs
@@ -255,6 +257,10 @@ contains
             call read_sources(like_set%sreceivers_file,dat(4)%rev,bnd)
             call read_times_3(like_set%sdata_lp_file,dat(4))
             dat(4)%datatype = 1
+            ! merge raystat of rayleigh-group and rayleigh-phase
+            call MergeRaystat(dat(1),dat(2))
+            ! merge raystat of love-group and love-phase
+            call MergeRaystat(dat(3),dat(4))
         end select
     end subroutine read_data
 
@@ -530,6 +536,49 @@ contains
 
 	    close(iunit1)
 
+    end subroutine
+
+    subroutine MergeRaystat(datGroup, datPhase)
+        implicit none
+        type(T_DATA), intent(inout)  :: datGroup, datPhase
+
+        ! local
+        integer i,j,k,npair
+
+        if (datGroup%nsrc .ne. datPhase%nsrc) then
+            call exception_raiseError('Group and phase measurements have different number of sources')
+        endif
+
+        if (datGroup%nrev .ne. datPhase%nrev) then
+            call exception_raiseError('Group and phase measurements have different number of receivers')
+        endif
+
+        if (datGroup%np .ne. datPhase%np) then
+            call exception_raiseError('Group and phase measurements have different number of frequencies')
+        endif
+
+        allocate( datGroup%raystat2(datGroup%nsrc*datGroup%nrev,2,datGroup%np) )
+        allocate( datPhase%raystat2(datPhase%nsrc*datPhase%nrev,2,datPhase%np) )
+
+        datGroup%raystat2 = 0.0
+        datPhase%raystat2 = 0.0
+
+        do k = 1, datGroup%np
+            npair = 0
+            do i = 1, datGroup%nsrc
+                do j = 1, datGroup%nrev
+                    npair = npair + 1
+                    if (datGroup%raystat(npair,1,k)==1 .or. datPhase%raystat(npair,1,k)==1) then
+                        datGroup%raystat2(npair,1,k) = 1
+                        datGroup%raystat2(npair,2,k) = npair
+                    endif
+                enddo
+            enddo
+        enddo
+
+        datPhase%raystat2 = datGroup%raystat2
+
+        return
     end subroutine
 
 end module like_settings
