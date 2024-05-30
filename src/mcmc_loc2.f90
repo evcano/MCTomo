@@ -387,6 +387,9 @@ contains
                 RTI%samplecount(ptype) = RTI%samplecount(ptype) + 1
                 samples(iter)%step = ptype
                 if(mcmc_set%slicesample==2)then
+                    if(mcmc_set%datatype==4) then
+                        call exception_raiseError('slice sampling not available if datatype=4')
+                    endif
                     ! slice sampling
                     call setup_slicesample(RTI,qvals,qstep,bnd,mcmc_set,dat(1)%src)
                     ivalue = ceiling(unirand(RTI%randcount)*RTI%ncells)
@@ -397,7 +400,6 @@ contains
                     pt_src%y = RTI%points(2,ivalue)
                     pt_src%z = RTI%points(3,ivalue)
                     call cgal_delaunay_box(delaunay_ptr,pt_src,p0,p1,bnd_box)
-                    ! TODO evcano: may need to change this
                     if(mcmc_set%datatype/=2) then
                         call slice_sample(likelihood,dat,model,RTI,bnd_box,like_set,qvals,qstep,bnd,ivalue,like,RTI%like_count)
                     endif
@@ -522,6 +524,9 @@ contains
                 RTI%samplecount(ptype) = RTI%samplecount(ptype) + 1
                 samples(iter)%step = ptype
                 if(mcmc_set%slicesample>=1)then
+                    if(mcmc_set%datatype==4) then
+                        call exception_raiseError('slice sampling not available if datatype=4')
+                    endif
                     ! slice sampling
                     call setup_slicesample(RTI,qvals,qstep,bnd,mcmc_set,dat(1)%src)
                     iloc = ceiling(unirand(RTI%randcount)*dat(1)%nsrc)
