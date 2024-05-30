@@ -906,6 +906,10 @@ contains
         call array_parameters(parameters,RTI%parameters)
         call cgal_delaunay_build(points, parameters, RTI%ncells, delaunay_ptr )
 
+        if(mcmc_set%datatype==4) then
+            call exception_raiseError('parallel tempering not allowed if datatype=4')
+        endif
+
         ! > initialize some setting values
         accDepMv = 0
         totalDepMv = 0
