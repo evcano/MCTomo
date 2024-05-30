@@ -400,12 +400,8 @@ contains
                     pt_src%y = RTI%points(2,ivalue)
                     pt_src%z = RTI%points(3,ivalue)
                     call cgal_delaunay_box(delaunay_ptr,pt_src,p0,p1,bnd_box)
-                    if(mcmc_set%datatype/=2) then
-                        call slice_sample(likelihood,dat,model,RTI,bnd_box,like_set,qvals,qstep,bnd,ivalue,like,RTI%like_count)
-                    endif
-                    if(mcmc_set%datatype>=1) then
-                        call slice_sample(likelihood,dat,model,RTI,bnd_box,like_set,qvals,qstep,bnd,int(RTI%ncells)+ivalue,like,RTI%like_count)
-                    endif
+                    if(mcmc_set%datatype/=2) call slice_sample(likelihood,dat,model,RTI,bnd_box,like_set,qvals,qstep,bnd,ivalue,like,RTI%like_count)
+                    if(mcmc_set%datatype>=1) call slice_sample(likelihood,dat,model,RTI,bnd_box,like_set,qvals,qstep,bnd,int(RTI%ncells)+ivalue,like,RTI%like_count)
                     call update_model(RTI,model)
                     accepted=.true.
                     if(abs(like%like-huge(like%like))<eps .or. like%like/=like%like) accepted=.false.
