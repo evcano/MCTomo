@@ -831,9 +831,6 @@ contains
         integer, dimension(:), allocatable :: crazyray
         type(T_RAY), dimension(:,:), allocatable           :: phaseRays
 
-        ! > local variable to store the ray-state of group and phase measurements
-        integer, dimension(:,:,:), allocatable  ::  raystat_GP
-
         ! > local grid
         type(T_GRID) :: grid
 
@@ -985,13 +982,6 @@ contains
                 enddo
             endif
 
-            ! evcano: datGroup and datPhase share receivers and sources but have different ray status.
-            !         We merge the ray status of datGroup and datPhase in raystat_GP. 1st col is the
-            !         state (0 or 1), 2nd col is the ray number, 3rd col is the frequency number.
-            ! evcano: dangerpoint
-            allocate( raystat_GP(nsrc*nrev,2,np) )
-            call MergeRaystat(datGroup%raystat,datPhase%raystat,raystat_GP,nsrc,nrev,np)
-
             ! call modrays to calculate travel times
             allocate( phaseRays(nrev*nsrc, np) )
             phaseRays%srcid = 0
@@ -1010,7 +1000,7 @@ contains
                 if(settings%dynamic == 2)then
                     call modrays(nsrc,datGroup%src(1,:),datGroup%src(2,:), &
                         nrev,datGroup%rev(1,:),datGroup%rev(2,:), &
-                        raystat_GP(:,:,i),0, &
+                        datGroup%raystat2(:,:,i),0, &
                         grid%nx,grid%ny,grid%xmin,grid%ymin,&
                         grid%dx,grid%dy,like%vel(i,:,:), &
                         gridx,gridy,sgref, &
@@ -1021,7 +1011,7 @@ contains
                 else
                     call modrays(nsrc,datGroup%src(1,:),datGroup%src(2,:), &
                         nrev,datGroup%rev(1,:),datGroup%rev(2,:), &
-                        raystat_GP(:,:,i),0, &
+                        datGroup%raystat2(:,:,i),0, &
                         grid%nx,grid%ny,grid%xmin,grid%ymin,&
                         grid%dx,grid%dy,like%vel(i,:,:), &
                         gridx,gridy,sgref, &
@@ -1148,33 +1138,4 @@ contains
 
         return
     end subroutine surf_likelihood_2
-
-    ! TODO evcano: maybe this can be moved to likelihood_settings.f90 read_data subroutine
-    subroutine MergeRaystat(groupRaystat,phaseRaystat,outRaystat,nsrc,nrev,np)
-        implicit none
-
-        integer, dimension(:,:,:), intent(in)      ::   groupRaystat, phaseRaystat
-        integer, dimension(:,:,:), intent(inout)   ::   outRaystat
-        integer, intent(in)  ::  nsrc, nrev, np
-
-        ! local
-        integer i, j, k, npair
-
-        outRaystat = 0
-
-        do k = 1, np
-            npair = 0
-            do i = 1, nsrc
-                do j = 1, nrev
-                    npair = npair + 1
-                    if (groupRaystat(npair,1,k)==1 .or. phaseRaystat(npair,1,k)==1) then
-                        outRaystat(npair,1,k) = 1
-                        outRaystat(npair,2,k) = npair
-                    endif
-                enddo
-            enddo
-        enddo
-
-        return
-    end subroutine
 end module m_surf_likelihood
