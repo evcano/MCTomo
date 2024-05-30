@@ -866,15 +866,10 @@ contains
         call convert_to_layer( model, grid, ix0, ix1, iy0, iy1, layer )
 
         ! first set up the parameters for surface modes code
-        ! evcano: see line 24 surfmodes.f90
-        select case (raylov)
-        ! rayleigh waves
-        case (1)
-            paras%modetype = 1
-        ! love waves
-        case (2)
-            paras%modetype = 0
-        end select
+        ! evcano: see line 24 in surfmodes.f90
+        ! evcano: raylov=1 for rayleigh waves, so modetype = abs(1-2) = 1
+        ! evcano: raylov=2 for love waves, so  modetype = abs(2-2) = 0
+        paras%modetype = abs(raylov - 2)
         ! evcano: phaseGroup=1 makes surfmodes to output group and phase velocities (line 315 surfdisp96.f)
         paras%phaseGroup = 1
         paras%tolmin = settings%tol
