@@ -153,14 +153,16 @@ contains
         allocate( model%vp(grid%nz, grid%ny, grid%nx) )
         allocate( model%vs(grid%nz, grid%ny, grid%nx) )
         allocate( model%rho(grid%nz, grid%ny, grid%nx) )
+        allocate( model%wld(grid%ny, grid%nx) )
 
         model%vp = 1.0 ! safe
         model%vs = 1.0
         model%rho = 1.0
 
-        ! evcano: variable water layer depth
-        if (grid%waterFile .ne. 'FALSE') then
-            allocate( model%wld(grid%ny, grid%nx) )
+        ! evcano: set water layer depth to a constant value or read it from file
+        if (grid%waterFile .eq. 'FALSE') then
+            model%wld = grid%waterDepth
+        else
             call read_water_layer_file(grid%waterFile,model%wld,grid%ny,grid%nx)
         endif
 
@@ -281,6 +283,8 @@ contains
         enddo
 
         close(iunit1)
+
+        call log_msg("Water layer file read")
     end subroutine
 
 end module
