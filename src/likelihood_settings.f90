@@ -391,33 +391,33 @@ contains
     end subroutine
 
     subroutine read_times_3(filename,dat,dsfile)
-    	implicit none
-	    character( len=* ), intent(in)  :: filename
+        implicit none
+        character( len=* ), intent(in)  :: filename
         type(T_DATA), intent(inout)       :: dat
-	    character( len=* ), intent(in), optional :: dsfile
+        character( len=* ), intent(in), optional :: dsfile
 
-	    ! local variable
-	    integer i, j, k !iterator
-	    integer npairs, nrays
-	    integer nsrc, nrev
-	    integer validity
+        ! local variable
+        integer i, j, k !iterator
+        integer npairs, nrays
+        integer nsrc, nrev
+        integer validity
         integer nfreqs, nmodes
-	    integer iunit1, iunit2
-	    integer iostatus
-	    real( kind=ii10 ) t, n
-	    real( kind=ii10 ) dssval
-	    !real( kind=ii10 ), dimension(:,:,:), allocatable :: time_src_rev
+        integer iunit1, iunit2
+        integer iostatus
+        real( kind=ii10 ) t, n
+        real( kind=ii10 ) dssval
+        !real( kind=ii10 ), dimension(:,:,:), allocatable :: time_src_rev
 
         open(unit=newunit(iunit1), file = filename, status = 'old', iostat = iostatus )
         if( iostatus /= 0 )then
             call exception_raiseError( 'error when open the file: ' // filename )
-	    endif
-	    if( present(dsfile) ) then
+        endif
+        if( present(dsfile) ) then
             open(unit=newunit(iunit2), file = filename, status = 'old', iostat = iostatus )
             if( iostatus /= 0 )then
                  call exception_raiseError( 'error when open the file: ' // dsfile )
-	        endif
-	    endif
+            endif
+        endif
 
         read(iunit1,*) nfreqs
         allocate( dat%freqs(nfreqs) )
@@ -427,19 +427,19 @@ contains
         dat%nmodes = 1
         nmodes = 1
 
-	    nsrc = size(dat%src,2)
-	    nrev = size(dat%rev,2)
+        nsrc = size(dat%src,2)
+        nrev = size(dat%rev,2)
         dat%nsrc = nsrc
         dat%nrev = nrev
 
-	    allocate( dat%raystat(nsrc*nrev,2,nfreqs) )
-	    allocate( dat%ttime(nsrc*nrev,3,nfreqs) )
-	    !allocate( time_src_rev(nsrc*nrev,3,nfreqs) )
+        allocate( dat%raystat(nsrc*nrev,2,nfreqs) )
+        allocate( dat%ttime(nsrc*nrev,3,nfreqs) )
+        !allocate( time_src_rev(nsrc*nrev,3,nfreqs) )
         dat%raystat =  0
         dat%ttime = 0
         !time_src_rev =  0
 
-	    npairs = 0
+        npairs = 0
         nrays = 0
 	    do i = 1, nsrc
 	       do j = 1, nrev
