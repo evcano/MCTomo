@@ -1026,7 +1026,8 @@ contains
     
             ! if crazyray, return
             if( any(crazyray > 0) )then
-                like%like = huge(like%like)
+                like%likeGroup = huge(like%likeGroup)
+                like%likePhase = huge(like%likePhase)
                 RTI%num_bad_ray = RTI%num_bad_ray + 1
                 return
             endif
