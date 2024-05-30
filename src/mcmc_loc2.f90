@@ -397,8 +397,13 @@ contains
                     pt_src%y = RTI%points(2,ivalue)
                     pt_src%z = RTI%points(3,ivalue)
                     call cgal_delaunay_box(delaunay_ptr,pt_src,p0,p1,bnd_box)
-                    if(mcmc_set%datatype/=2) call slice_sample(likelihood,dat,model,RTI,bnd_box,like_set,qvals,qstep,bnd,ivalue,like,RTI%like_count)
-                    if(mcmc_set%datatype>=1) call slice_sample(likelihood,dat,model,RTI,bnd_box,like_set,qvals,qstep,bnd,int(RTI%ncells)+ivalue,like,RTI%like_count)
+                    ! TODO evcano: may need to change this
+                    if(mcmc_set%datatype/=2) then
+                        call slice_sample(likelihood,dat,model,RTI,bnd_box,like_set,qvals,qstep,bnd,ivalue,like,RTI%like_count)
+                    endif
+                    if(mcmc_set%datatype>=1) then
+                        call slice_sample(likelihood,dat,model,RTI,bnd_box,like_set,qvals,qstep,bnd,int(RTI%ncells)+ivalue,like,RTI%like_count)
+                    endif
                     call update_model(RTI,model)
                     accepted=.true.
                     if(abs(like%like-huge(like%like))<eps .or. like%like/=like%like) accepted=.false.
@@ -1692,6 +1697,7 @@ contains
             rho = vp2rho(vp)
             if(mcmc_set%datatype == 0)then
                 prob = log(mcmc_set%sigma_vp2*sqrt(2*PII)) + (vp-pm%vp)**2/(2*mcmc_set%sigma_vp2**2)
+            ! TODO evcano: may need to change thiss
             elseif(mcmc_set%datatype==2)then
                 prob = log(mcmc_set%sigma_vs2*sqrt(2*PII)) + (vs-pm%vs)**2/(2*mcmc_set%sigma_vs2**2)
             else
@@ -1704,6 +1710,7 @@ contains
             vs = mcmc_set%vsmin + unirand(RTI%randcount)*(mcmc_set%vsmax-mcmc_set%vsmin)
             vp = mcmc_set%vpmin + unirand(RTI%randcount)*(mcmc_set%vpmax-mcmc_set%vpmin)
             !rho = mcmc_set%rhomin + unirand(RTI%randcount)*(mcmc_set%rhomax-mcmc_set%rhomin)
+            ! TODO evcano: may need to change this
             if(mcmc_set%datatype==2) vp=vs2vp(vs)
             rho = vp2rho(vp)
             prob = 0
@@ -1788,6 +1795,7 @@ contains
 
         if(mcmc_set%kernel == 0) then !gaussian kernel
             call cgal_delaunay_locate(delaunay_ptr,pt,pm2)
+            ! TODO evcano: may need to change this
             if(mcmc_set%datatype == 0)then
                 prob = log( 1/(mcmc_set%sigma_vp2*sqrt(2*PII)) ) - &
                     (pm2%vp-pm1%vp)**2/(2*mcmc_set%sigma_vp2**2)
@@ -1929,6 +1937,7 @@ contains
         if(pt_src%z>(mcmc_set%grid%zmin+mcmc_set%grid%zmax)/2) &
             pm_dst%vs = RTI%parameters(2,ivalue) + gasdev(RTI%randcount)*mcmc_set%sigma_vs2
             pm_dst%vp = RTI%parameters(1,ivalue) + gasdev(RTI%randcount)*mcmc_set%sigma_vp2
+        ! TODO evcano: may need to change this
         if(mcmc_set%datatype==2) pm_dst%vp = vs2vp(pm_dst%vs)
         pm_dst%rho = vp2rho(pm_dst%vp)
         !dev%vp = gasdev(RTI%randcount)*mcmc_set%sigma_vp
