@@ -1065,6 +1065,15 @@ contains
             like%sigmaPhase = datPhase%ttime(:,2,:)
         endif
 
+
+        if(any(like%sigmaGroup<EPS))then
+            call exception_raiseError('The noise level is 0!')
+        endif
+
+        if(any(like%sigmaPhase<EPS))then
+            call exception_raiseError('The noise level is 0!')
+        endif
+
         ! update likelihood and misfits
         like%likeGroup = 0
         like%misfitGroup = 0
@@ -1079,13 +1088,8 @@ contains
             do j = 1, nsrc
                    do k = 1, nrev
                     nrr = nrr + 1
-
                     ! group velocity
                     if(datGroup%raystat(nrr,1,i) == 1) then
-                        if(like%sigmaGroup(nrr,i)<EPS)then
-                            call exception_raiseError('The noise level is 0!')
-                        endif
-
                         like%likeGroup = like%likeGroup + ( like%groupTime(k,j,i)-datGroup%ttime(nrr,1,i)&
                             )**2/( 2*(like%sigmaGroup(nrr,i))**2 )
 
@@ -1100,10 +1104,6 @@ contains
 
                     ! phase velocity
                     if(datPhase%raystat(nrr,1,i) == 1) then
-                        if(like%sigmaPhase(nrr,i)<EPS)then
-                            call exception_raiseError('The noise level is 0!')
-                        endif
-
                         like%likePhase = like%likePhase + ( like%phaseTime(k,j,i)-datPhase%ttime(nrr,1,i)&
                             )**2/( 2*(like%sigmaPhase(nrr,i))**2 )
 
@@ -1118,14 +1118,6 @@ contains
                 enddo
             enddo
         enddo
-
-        if(any(like%sigmaGroup<EPS))then
-            call exception_raiseError('The noise level is 0!')
-        endif
-
-        if(any(like%sigmaPhase<EPS))then
-            call exception_raiseError('The noise level is 0!')
-        endif
 
         ! finish loglikelihood computation
         like%likeGroup = like%likeGroup + sum(log(like%sigmaGroup)) + datGroup%nrays/2.0 * log(PI2)
