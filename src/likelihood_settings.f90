@@ -441,43 +441,44 @@ contains
 
         npairs = 0
         nrays = 0
-	    do i = 1, nsrc
-	       do j = 1, nrev
-	          npairs = npairs + 1
-	          read(iunit1, *) validity
-	          if( present(dsfile) ) then
-	              read(iunit2,*) dssval
-	          else
-	          	  dssval = 1
-	          endif
 
-	          if(validity /= 0) then
-                  do k = 1, nfreqs*nmodes
-                      read(iunit1,*) t, n
-	                  dat%ttime(npairs,1,k) = t
-                      dat%ttime(npairs,2,k) = n
-	         	      dat%ttime(npairs,3,k) = dssval
-                      if( abs(t+1) > EPS ) then
-	    	              dat%raystat(npairs,1,k) = 1
-	    	              dat%raystat(npairs,2,k) = npairs
-                          nrays = nrays + 1
-                      endif
-                  enddo
-	          else
-	              dat%raystat(npairs,:,:) = 0
-                  dat%ttime(npairs,1,:) =  -1
-                  dat%ttime(npairs,2,:) = 1
-	          endif
-           enddo	
+        do i = 1, nsrc
+            do j = 1, nrev
+               npairs = npairs + 1
+               read(iunit1, *) validity
+               if( present(dsfile) ) then
+                   read(iunit2,*) dssval
+               else
+                   dssval = 1
+               endif
+
+               if(validity /= 0) then
+                   do k = 1, nfreqs*nmodes
+                       read(iunit1,*) t, n
+                       dat%ttime(npairs,1,k) = t
+                       dat%ttime(npairs,2,k) = n
+                       dat%ttime(npairs,3,k) = dssval
+                       if( abs(t+1) > EPS ) then
+                           dat%raystat(npairs,1,k) = 1
+                           dat%raystat(npairs,2,k) = npairs
+                           nrays = nrays + 1
+                       endif
+                   enddo
+               else
+                   dat%raystat(npairs,:,:) = 0
+                   dat%ttime(npairs,1,:) =  -1
+                   dat%ttime(npairs,2,:) = 1
+               endif
+            enddo
         enddo
 
-	    close(iunit1)
-	    if(present(dsfile)) close(iunit2)
+        close(iunit1)
+        if(present(dsfile)) close(iunit2)
 
         dat%nrays = nrays
-	    !allocate( dat%ttime(nrays,3,nfreqs) )
-	    !dat%ttime(:,:,:) = time_src_rev(1:nrays,:,:)
-	    !deallocate( time_src_rev )
+        !allocate( dat%ttime(nrays,3,nfreqs) )
+        !dat%ttime(:,:,:) = time_src_rev(1:nrays,:,:)
+        !deallocate( time_src_rev )
 
     end subroutine
 
