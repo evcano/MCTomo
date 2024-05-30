@@ -387,9 +387,7 @@ contains
                 RTI%samplecount(ptype) = RTI%samplecount(ptype) + 1
                 samples(iter)%step = ptype
                 if(mcmc_set%slicesample==2)then
-                    if(mcmc_set%datatype==4) then
-                        call exception_raiseError('slice sampling not available if datatype=4')
-                    endif
+                    if(mcmc_set%datatype==4) call exception_raiseError('slice sampling not available if datatype=4')
                     ! slice sampling
                     call setup_slicesample(RTI,qvals,qstep,bnd,mcmc_set,dat(1)%src)
                     ivalue = ceiling(unirand(RTI%randcount)*RTI%ncells)
@@ -520,9 +518,7 @@ contains
                 RTI%samplecount(ptype) = RTI%samplecount(ptype) + 1
                 samples(iter)%step = ptype
                 if(mcmc_set%slicesample>=1)then
-                    if(mcmc_set%datatype==4) then
-                        call exception_raiseError('slice sampling not available if datatype=4')
-                    endif
+                    if(mcmc_set%datatype==4) call exception_raiseError('slice sampling not available if datatype=4')
                     ! slice sampling
                     call setup_slicesample(RTI,qvals,qstep,bnd,mcmc_set,dat(1)%src)
                     iloc = ceiling(unirand(RTI%randcount)*dat(1)%nsrc)
@@ -963,9 +959,7 @@ contains
         call array_parameters(parameters,RTI%parameters)
         call cgal_delaunay_build(points, parameters, RTI%ncells, delaunay_ptr )
 
-        if(mcmc_set%datatype==4) then
-            call exception_raiseError('parallel tempering not allowed if datatype=4')
-        endif
+        if(mcmc_set%datatype==4) call exception_raiseError('parallel tempering not allowed if datatype=4')
 
         ! > initialize some setting values
         accDepMv = 0
