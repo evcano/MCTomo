@@ -141,15 +141,15 @@ contains
         like%sigmaPhase = 1.0
 
         ! initialise source-receiver ray lenth using source-receiver distance
-	    do i = 1, dat%np*dat%nmodes
-	        nrr  = 0
-	        do j = 1, nsrc
-	   	        do k = 1, nrev
-	                nrr = nrr + 1
+        do i = 1, dat%np*dat%nmodes
+            nrr  = 0
+            do j = 1, nsrc
+                do k = 1, nrev
+                    nrr = nrr + 1
                     like%srdist(nrr,:) = norm2(dat%src(1:dim_rev,j)-dat%rev(:,k))
-	            enddo
-	        enddo
-	    enddo
+                enddo
+            enddo
+        enddo
 
         ! gradient
         if( dat%datatype == 0)then
