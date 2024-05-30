@@ -33,7 +33,7 @@ module m_settings
     type T_MOD
         real( kind=ii10 ), dimension(:,:,:), allocatable :: vp, vs, rho
         ! evcano: water layer depth
-        real( kind=ii10 ), dimension(:,:), allocatable   :: wld
+        real(kind=4), dimension(:,:), allocatable   :: wld
     end type T_MOD
 
     ! mcmc settings
@@ -262,7 +262,7 @@ contains
         implicit none
 
         character(len=STRLEN), intent(in) :: waterFile
-        real(kind=ii10), dimension(:,:), intent(inout) :: wld
+        real(kind=4), dimension(:,:), intent(inout) :: wld
         integer, intent(in) :: ny,nx
 
         ! local
