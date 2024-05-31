@@ -882,7 +882,7 @@ contains
         allocate( ierr(iy0:iy1,ix0:ix1) )
         ierr = 0
 #ifdef _OPENMP
-        t1 = omp_get_wtime ( )
+        !t1 = omp_get_wtime ( )
         !call log_msg('Begin normal modes...')
         !call omp_set_num_threads(settings%nthreads)
 #endif
@@ -896,7 +896,7 @@ contains
         enddo
         !$omp end do
         !$omp end parallel
-        t2 = omp_get_wtime ( )
+        !t2 = omp_get_wtime ( )
         !call log_msg(itoa(omp_get_num_threads() ) )
         !call log_msg('parallelized dispersion curve code: ' //rtoa(t2-t1) )
         !call write_vel(pvel,'phaseVel.dat')
@@ -977,35 +977,22 @@ contains
             allocate( crazyray(np) )
             crazyray = 0
 #ifdef _OPENMP
-            t1 = omp_get_wtime ( )
+            !t1 = omp_get_wtime ( )
             !call omp_set_num_threads(settings%nthreads)
 #endif
             !$omp parallel
             !$omp do private(nrr,i,j,k)
             do i = 1, np
                 !if( .not.allocated(ttime) ) allocate( ttime(nrev, nsrc) )
-                if(settings%dynamic == 2)then
-                    call modrays(nsrc,datGroup%src(1,:),datGroup%src(2,:), &
-                        nrev,datGroup%rev(1,:),datGroup%rev(2,:), &
-                        datGroup%raystat2(:,:,i),0, &
-                        grid%nx,grid%ny,grid%xmin,grid%ymin,&
-                        grid%dx,grid%dy,like%vel(i,:,:), &
-                        gridx,gridy,sgref, &
-                        sgdic,sgext,ERAD, &
-                        order,band,like%phaseTime(:,:,i), &
-                        phaseRays(:,i),crazyray(i),uar,&
-                        like%field4d(:,:,:,i),like%btime(:,i))
-                else
-                    call modrays(nsrc,datGroup%src(1,:),datGroup%src(2,:), &
-                        nrev,datGroup%rev(1,:),datGroup%rev(2,:), &
-                        datGroup%raystat2(:,:,i),0, &
-                        grid%nx,grid%ny,grid%xmin,grid%ymin,&
-                        grid%dx,grid%dy,like%vel(i,:,:), &
-                        gridx,gridy,sgref, &
-                        sgdic,sgext,ERAD, &
-                        order,band,like%phaseTime(:,:,i), &
-                        phaseRays(:,i),crazyray(i),uar)
-                endif
+                call modrays(nsrc,datGroup%src(1,:),datGroup%src(2,:), &
+                    nrev,datGroup%rev(1,:),datGroup%rev(2,:), &
+                    datGroup%raystat2(:,:,i),0, &
+                    grid%nx,grid%ny,grid%xmin,grid%ymin,&
+                    grid%dx,grid%dy,like%vel(i,:,:), &
+                    gridx,gridy,sgref, &
+                    sgdic,sgext,ERAD, &
+                    order,band,like%phaseTime(:,:,i), &
+                    phaseRays(:,i),crazyray(i),uar)
 
                 ! allocate and storage the ray info
                 ! evcano: we parametrize the noise of both group and phase measurements
@@ -1021,7 +1008,7 @@ contains
             !$omp end do
             !call log_msg(itoa(omp_get_num_threads() ) )
             !$omp end parallel
-            t2 = omp_get_wtime ( )
+            !t2 = omp_get_wtime ( )
             !call log_msg('parallelized fast marching code: ' //rtoa(t2-t1) )
     
             ! if crazyray, return
