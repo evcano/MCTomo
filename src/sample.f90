@@ -350,7 +350,11 @@ program sample
     bnd_box(2) = d3(grid%xmax,grid%ymax,grid%zmax)
     
     ! read data
-    allocate(dat(2))
+    if (mcmc_set%datatype==4) then
+        allocate(dat(4))
+    else
+        allocate(dat(2))
+    endif
     call read_data(dat,like_set)
 
     call init_run_info(RTI,dat,mcmc_set)
