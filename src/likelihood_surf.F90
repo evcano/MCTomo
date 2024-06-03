@@ -923,11 +923,8 @@ contains
         ! evcano: always assign group velocity
         like%gvel(:,iy0:iy1, ix0:ix1) = gvel
 
-        ! if using straight rays
-        ! evcano: raise expetion if straightrays were to be used
-        if(settings%isStraight == 1)then
-            call exception_raiseError('straight rays cannot be used if LIKE_SET%DATATYPE=4')
-        else
+        ! evcano: update rays each 200 iterations
+        if ( RTI%sampletotal==1 .or. mod(RTI%sampletotal,200)==0 ) then
             ! calculate travel time of rayleigh/love wave using fast marching code
             ! settings
             gridx = settings%gridx
@@ -1026,6 +1023,13 @@ contains
             ! calculate group traveltime along rays
             ! evcano: dangerpoint
             call CalGroupTime(like%gvel,grid,phaseRays,like%groupTime)
+
+            ! evcano: store rays
+            like%rays = phaseRays
+        else
+            ! evcano: compute predicted times using precomputed rays
+            call CalGroupTime(like%vel,grid,like%rays,like%phaseTime)
+            call CalGroupTime(like%gvel,grid,like%rays,like%groupTime)
         endif
 
         ! update sigma 

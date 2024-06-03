@@ -141,6 +141,15 @@ contains
         like%unweighted_misfit = 0
         like%straightRaySet = .false.
 
+        ! evcano: allocate %rays so we can store rays computed each X iterations
+        if (set%datatype .eq. 4) then
+            allocate(like%rays(nsrc*nrev,dat%np))
+            like%rays%srcid = 0
+            like%rays%revid = 0
+            like%rays%npoints = 0
+            like%straightRaySet = .true.
+        endif
+
         ! evcano: initialise new variables
         like%likeGroup = 0
         like%misfitGroup = 0
