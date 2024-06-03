@@ -107,30 +107,24 @@ contains
             like%unweighted_misfit = like%likelihoods(1)%unweighted_misfit + like%likelihoods(2)%unweighted_misfit
         ! evcano:  rgrp,rpha,lgrp, and lpha
         case (4)
+            like%like = huge(like%like)
+            like%misfit = huge(like%misfit)
+            like%unweighted_misfit = huge(like%unweighted_misfit)
+
             ! only surface waves are used, set the vp according to vs and
             ! density according to vp
             call vs2vp_3d(model%vs,model%vp)
             call vp2rho_3d(model%vp,model%rho)
 
-            ! compute likelihood of rayleigh-group and rayleigh-phase measurements
+            ! compute likelihood of rayleigh measurements
             call surf_likelihood_2(dat(1),dat(2),model,RTI,perturbed_box,like_set,like%likelihoods(1),1)
 
-            ! check if the model was rejected during computation of rayleigh-wave likelihood
-            if (abs(like%likelihoods(1)%likeGroup-huge(like%likelihoods(1)%likeGroup))<eps) then
-                ! if the model was rejected, we set a huge likelihood value
-                like%like = huge(like%like)
-                like%misfit = huge(like%misfit)
-                like%unweighted_misfit = huge(like%unweighted_misfit)
-            else
-                ! compute likelihood of love-group and love-phase measurements
+            ! compute likelihood of love measurements if likelihood of rayleigh measurements was computed
+            if ( abs( like%likelihoods(1)%likeGroup - huge(like%likelihoods(1)%likeGroup) ) > eps) then
                 call surf_likelihood_2(dat(3),dat(4),model,RTI,perturbed_box,like_set,like%likelihoods(2),2)
 
-                ! check if the model was rejected during computation of love-wave likelihood
-                if (abs(like%likelihoods(2)%likeGroup-huge(like%likelihoods(2)%likeGroup))<eps) then
-                    like%like = huge(like%like)
-                    like%misfit = huge(like%misfit)
-                    like%unweighted_misfit = huge(like%unweighted_misfit)
-                else
+                ! update general likelihood if likelihood of love measurements was computed
+                if ( abs( like%likelihoods(2)%likeGroup - huge(like%likelihoods(2)%likeGroup) ) > eps) then
                     like%like = like%likelihoods(1)%likeGroup + like%likelihoods(1)%likePhase + &
                         like%likelihoods(2)%likeGroup + like%likelihoods(2)%likePhase
 
@@ -142,6 +136,7 @@ contains
                         like%likelihoods(2)%unweighted_misfitGroup + like%likelihoods(2)%unweighted_misfitPhase
                 endif
             endif
+
         end select
 
         !write(*,*) '-loglikelihood: ', like%like
