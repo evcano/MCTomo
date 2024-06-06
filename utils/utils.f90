@@ -95,9 +95,9 @@ contains
 
         real( kind=c_double ), parameter :: POISSON = 1.730
         ! crust
-        !vp = vs * POISSON
+        vp = vs * POISSON
         ! sedimentary
-        vp = 1.16*vs + 1.36
+        !vp = 1.16*vs + 1.36
     end function
 
     subroutine vs2vp_3d(vs,vp)
@@ -107,9 +107,9 @@ contains
 
         real( kind=c_double ), parameter :: POISSON = 1.730
         ! crust
-        !vp = vs * POISSON
+        vp = vs * POISSON
         ! sedimentary
-        vp = 1.16*vs + 1.36
+        !vp = 1.16*vs + 1.36
     end subroutine
 
     function vp2rho(vp) result(rho)
@@ -118,9 +118,9 @@ contains
         real(kind=c_double) :: rho
 
         ! crust
-        !rho = 2.35 +  0.036*(vp-3)**2
+        rho = 2.35 +  0.036*(vp-3)**2
         ! sedimentary
-        rho = 1.74*vp**0.25
+        !rho = 1.74*vp**0.25
     endfunction
 
     subroutine vp2rho_3d(vp, rho)
@@ -129,9 +129,9 @@ contains
         real(kind=c_double), dimension(:,:,:), intent(out) :: rho
 
         ! crust
-        !rho = 2.35 +  0.036*(vp-3)**2
+        rho = 2.35 +  0.036*(vp-3)**2
         ! sedimentary
-        rho = 1.74*vp**0.25
+        !rho = 1.74*vp**0.25
     end subroutine
 
     function itoa4(n) result(newstring)
