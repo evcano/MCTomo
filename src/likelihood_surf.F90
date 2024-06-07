@@ -924,7 +924,7 @@ contains
         like%gvel(:,iy0:iy1, ix0:ix1) = gvel
 
         ! evcano: update rays each 200 iterations
-        if ( RTI%sampletotal==1 .or. mod(RTI%sampletotal,200)==0 ) then
+        if ( RTI%sampletotal<2 .or. mod(RTI%sampletotal,200)==0 ) then
             ! calculate travel time of rayleigh/love wave using fast marching code
             ! settings
             gridx = settings%gridx
