@@ -915,8 +915,14 @@ contains
             return
         endif
 
-        ! evcano: always assign group velocity
+        ! prepare velocity model for the fast marching code
+        like%vel(:, iy0+1:iy1+1, ix0+1:ix1+1) = pvel
         like%gvel(:,iy0:iy1, ix0:ix1) = gvel
+        ! assign boundary value
+        if(ix0==1) like%vel(:,:,1) = like%vel(:,:,2)
+        if(ix1==grid%nx) like%vel(:,:,grid%nx+2) = like%vel(:,:,grid%nx+1)
+        if(iy0==1) like%vel(:,1,:) = like%vel(:,2,:)
+        if(iy1==grid%ny) like%vel(:,grid%ny+2,:) = like%vel(:,grid%ny+1,:)
 
         ! evcano: update rays each 200 iterations
         if ( RTI%sampletotal<2 .or. mod(RTI%sampletotal,200)==0 ) then
@@ -931,21 +937,6 @@ contains
             band  = settings%band
             ! evcano: uar to 0 so we always compute rays (line 445 fm2dray_cartesian.f90)
             uar   = 0
-
-            ! prepare velocity model for the fast marching code
-
-            ! evcano: According to Zhang etal 2018, fast marching code is always
-            ! ran using phase-velocity model. Phase-traveltimes are obtained from
-            ! the computed traveltime field. Group-traveltimes are obtained by
-            ! integrating the group-velocity model along rays derived from the
-            ! traveltime field.
-
-            like%vel(:, iy0+1:iy1+1, ix0+1:ix1+1) = pvel
-            ! assign boundary value
-            if(ix0==1) like%vel(:,:,1) = like%vel(:,:,2)
-            if(ix1==grid%nx) like%vel(:,:,grid%nx+2) = like%vel(:,:,grid%nx+1)
-            if(iy0==1) like%vel(:,1,:) = like%vel(:,2,:)
-            if(iy1==grid%ny) like%vel(:,grid%ny+2,:) = like%vel(:,grid%ny+1,:)
 
             ! prepare the beginning time
             idx0 = ix0 - ext
