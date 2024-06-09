@@ -844,15 +844,10 @@ contains
         iy0 = floor( (perturbed_box(1)%y-grid%ymin)/grid%dy ) + 1 - expand
         iy1 = floor( (perturbed_box(2)%y-grid%ymin)/grid%dy ) + 1 + expand
 
-        ! check model, discard those the top layer is not smallest
-        ! no need to check model during computation of love likelihood
-        ! since we already did during computation of rayleigh likelihood
-        if (raylov .eq. 1) then
-            if(check_model(model%vs))then
-                like%likeGroup = huge(like%likeGroup)
-                like%likePhase = huge(like%likePhase)
-                return
-            endif
+        if(check_model(model%vs))then
+            like%likeGroup = huge(like%likeGroup)
+            like%likePhase = huge(like%likePhase)
+            return
         endif
 
         if(ix0<1) ix0 = 1
