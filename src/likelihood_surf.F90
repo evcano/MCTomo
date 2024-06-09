@@ -1014,7 +1014,8 @@ contains
             like%rays = phaseRays
         else
             ! evcano: compute predicted times using precomputed rays
-            call CalGroupTime(like%vel,grid,like%rays,like%phaseTime)
+            ! for phase measurements, we pass the phase velocity array without the boundaries
+            call CalGroupTime(like%vel(:,2:grid%ny+1,2:grid%nx+1),grid,like%rays,like%phaseTime)
             call CalGroupTime(like%gvel,grid,like%rays,like%groupTime)
         endif
 
