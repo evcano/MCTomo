@@ -1777,7 +1777,7 @@ contains
 
         if( vs<mcmc_set%vsmin .or. vs>mcmc_set%vsmax .or. &
             vp<mcmc_set%vpmin .or. vp>mcmc_set%vpmax .or. &
-            vp<1.1*vs) then
+            vp<vs*1.73) then
             lerr = .false.
             prob = 0
             return
@@ -2004,7 +2004,7 @@ contains
         ! out of prior or vp<1.1*vs (vp is generally bigger than vs)
         if( pm_dst%vs<mcmc_set%vsmin .or. pm_dst%vs>mcmc_set%vsmax .or.&
             pm_dst%vp<mcmc_set%vpmin .or. pm_dst%vp>mcmc_set%vpmax .or.&
-            pm_dst%vp<pm_dst%vs*1.1) then
+            pm_dst%vp<pm_dst%vs*1.73) then
             lerr = .false.
             return
         endif
