@@ -1751,7 +1751,7 @@ contains
             vs = pm%vs + gasdev(RTI%randcount)*mcmc_set%sigma_vs2
             vp = pm%vp + gasdev(RTI%randcount)*mcmc_set%sigma_vp2
             !rho = pm%rho + gasdev(RTI%randcount)*mcmc_set%sigma_rho
-            !vp = vs2vp(vs)
+            if(mcmc_set%datatype==2 .or. mcmc_set%datatype==4) vp=vs2vp(vs)
             rho = vp2rho(vp)
             if(mcmc_set%datatype == 0)then
                 prob = log(mcmc_set%sigma_vp2*sqrt(2*PII)) + (vp-pm%vp)**2/(2*mcmc_set%sigma_vp2**2)
