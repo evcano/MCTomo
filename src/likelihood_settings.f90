@@ -50,6 +50,7 @@ module like_settings
         type(T_RAY), dimension(:,:), allocatable :: rays ! currently, only for straight rays
         real( kind=ii10 ), dimension(:,:), allocatable :: srdist, sigma, sigmaGroup, sigmaPhase
         logical :: straightRaySet
+        integer :: fixedRayCounter
     end type T_LIKE_BASE
 
     ! likelihood settings
@@ -154,6 +155,7 @@ contains
         like%likeGroup = 0
         like%misfitGroup = 0
         like%unweighted_misfitGroup = 0
+        like%fixedRayCounter = 200
 
         like%likePhase = 0
         like%misfitPhase = 0
