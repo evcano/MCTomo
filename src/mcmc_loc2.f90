@@ -222,7 +222,7 @@ contains
             if(icycle ==0 .or. countFM>=maxTryNum)then
                 random = unirand(RTI%randcount)
                 propose = unirand(RTI%randcount)
-                ptype = proposeType2(propose,mcmc_set,iter)
+                ptype = proposeType(propose,mcmc_set,iter)
                 countFM = 0
             endif
 
@@ -1007,7 +1007,7 @@ contains
             if(icycle ==0 .or. countFM>=maxTryNum)then
                 random = unirand(RTI%randcount)
                 propose = unirand(RTI%randcount)
-                ptype = proposeType2(propose,mcmc_set,iter)
+                ptype = proposeType(propose,mcmc_set,iter)
                 countFM = 0
             endif
 
@@ -1618,31 +1618,30 @@ contains
         real(kind=ii10) random
         call random_number(random)
 
-        proposeType = 4
         ! variable noise and variable source-locations
         if(set%sigdep /= 0 .and. set%locate /=0)then
-            if (propose < 0.2) then
+            if (propose < 0.16) then
                 proposeType = 1
-            elseif(propose < 0.4) then
+            elseif(propose < 0.32) then
                 proposeType = 2
-            elseif(propose < 0.6) then
+            elseif(propose < 0.48) then
                 proposeType = 3
-            elseif(propose < 0.80) then
+            elseif(propose < 0.64) then
                 proposeType = 4
-            elseif(propose < 0.95) then
+            elseif(propose < 0.8) then
                 proposeType = 7
             else
                 proposeType = proposeSigmaType(set%datatype)
             endif
         ! variable noise and fixed source-locations
         elseif(set%sigdep /=0 .and. set%locate ==0)then
-            if (propose < 0.23) then
+            if (propose < 0.2) then
                 proposeType = 1
-            elseif(propose < 0.46) then
+            elseif(propose < 0.4) then
                 proposeType = 2
-            elseif(propose < 0.69) then
+            elseif(propose < 0.6) then
                 proposeType = 3
-            elseif(propose < 0.90) then
+            elseif(propose < 0.8) then
                 proposeType = 4
             else
                 proposeType = proposeSigmaType(set%datatype)
@@ -1655,18 +1654,18 @@ contains
                 proposeType = 2
             elseif(propose < 0.6) then
                 proposeType = 3
-            elseif(propose < 0.80) then
+            elseif(propose < 0.8) then
                 proposeType = 4
             else
                 proposeType = 7
             endif
         ! fixed noise and fixed source-locations
         else
-            if (propose < 0.2) then
+            if (propose < 0.25) then
                 proposeType = 1
-            elseif(propose < 0.4) then
+            elseif(propose < 0.50) then
                 proposeType = 2
-            elseif(propose < 0.6) then
+            elseif(propose < 0.75) then
                 proposeType = 3
             else
                 proposeType = 4
