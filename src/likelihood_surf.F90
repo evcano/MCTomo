@@ -924,8 +924,7 @@ contains
         if(iy0==1) like%vel(:,1,:) = like%vel(:,2,:)
         if(iy1==grid%ny) like%vel(:,grid%ny+2,:) = like%vel(:,grid%ny+1,:)
 
-        ! evcano: update rays each 200 iterations
-        if (like%fixedRayCounter>=200) then
+        if (settings%isStraight == 0) then
             ! calculate travel time of rayleigh/love wave using fast marching code
             ! settings
             gridx = settings%gridx
@@ -1009,16 +1008,6 @@ contains
             ! calculate group traveltime along rays
             ! evcano: dangerpoint
             call CalGroupTime(like%gvel,grid,phaseRays,like%groupTime)
-
-            ! evcano: store rays
-            like%rays = phaseRays
-            like%fixedRayCounter = 0
-        else
-            ! evcano: compute predicted times using precomputed rays
-            ! for phase measurements, we pass the phase velocity array without the boundaries
-            call CalGroupTime(like%vel(:,2:grid%ny+1,2:grid%nx+1),grid,like%rays,like%phaseTime)
-            call CalGroupTime(like%gvel,grid,like%rays,like%groupTime)
-            like%fixedRayCounter = like%fixedRayCounter + 1
         endif
 
         ! update sigma 
