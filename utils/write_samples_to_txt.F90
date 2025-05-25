@@ -15,56 +15,52 @@ module m_writesample
         real( kind=c_double )  :: noise1
     endtype
 
+    ! static values
+    integer, parameter, public :: sample_unit = 11
+    integer, parameter, public :: outfile_unit = 12
+
 contains
 
-    subroutine read_samples(samples,filename)
-        character( len=* ), intent(in) :: filename
+    subroutine read_samples(samples,nsamples)
+        implicit none
+
         type(T_SAMPLE), dimension(:), intent(inout) :: samples
-    
+        integer, intent(out) :: nsamples
+
         integer i
         integer stat
-        logical lexist
-    
-        inquire(file=filename,exist=lexist)
-        if(.not.lexist) write(*,*) 'error while reading file'
-        open(unit=11,file=filename,status='old',access='stream',action='read')
-            do i = 1, size(samples)
-                read(11,iostat=stat) samples(i)%step, samples(i)%accepted,&
-                samples(i)%vindex, samples(i)%ncells, samples(i)%misfit,&
-                samples(i)%unweighted_misfit,samples(i)%like,  &
-                samples(i)%coord, samples(i)%values, samples(i)%noise0, &
-                samples(i)%noise1
-                if(stat /= 0)then
-                    write(*,*) 'error while reading file'
-                endif
-            enddo
-        close(11)
+
+        nsamples = 0
+        do i = 1, size(samples)
+            read(sample_unit,iostat=stat) samples(i)%step, samples(i)%accepted,&
+            samples(i)%vindex, samples(i)%ncells, samples(i)%misfit,&
+            samples(i)%unweighted_misfit,samples(i)%like,  &
+            samples(i)%coord, samples(i)%values, samples(i)%noise0, &
+            samples(i)%noise1
+            if(stat /= 0) exit
+            nsamples = nsamples + 1
+        enddo
+
     end subroutine
     
-    subroutine write_samples_txt(samples,filename)
+    subroutine write_samples_txt(samples,nsamples)
         implicit none
-        character( len=* ), intent(in) :: filename
+
         type(T_SAMPLE), dimension(:), intent(in) :: samples
-    
+        integer, intent(in) :: nsamples
         integer i
-        integer nsamples
-        logical lexist
     
-        if(size(samples)==0) return
+        if(nsamples==0) return
     
-        ! > open file for writing
-        open(unit=12,file=filename,status='replace',action='write')
-    
-        ! > write samples to the file sample by sample
-        nsamples = size(samples)
+        ! write samples to the file sample by sample
         do i = 1, nsamples
-            write(12,*) samples(i)%step, samples(i)%accepted,&
+            write(outfile_unit,*) samples(i)%step, samples(i)%accepted,&
             samples(i)%vindex, samples(i)%ncells, samples(i)%misfit,&
             samples(i)%unweighted_misfit,samples(i)%like,  &
             samples(i)%coord, samples(i)%values,&
             samples(i)%noise0, samples(i)%noise1
         enddo
-        close(12)
+
     end subroutine
 
 end module m_writesample
@@ -74,6 +70,11 @@ program write2txt
 
     implicit none
 
+    ! static value
+    integer, parameter :: N = 1000000
+
+    logical lexist
+
     character(len=100) :: filename_in
     character(len=100) :: filename_out
 
@@ -81,10 +82,26 @@ program write2txt
     integer nsamples
 
     filename_in = './samples_1.out'
-    filename_out = './sample_1.txt'
-    nsamples = 100000
+    filename_out = './samples_1.txt'
 
-    allocate(samples(nsamples))
-    call read_samples(samples,filename_in)
-    call write_samples_txt(samples,filename_out)
+    allocate(samples(N))
+
+    ! open file to read
+    inquire(file=filename_in,exist=lexist)
+    if(.not.lexist) write(*,*) 'samples file does not exist'
+    open(unit=sample_unit,file=filename_in,status='old',access='stream',action='read')
+
+    ! open file to write
+    open(unit=outfile_unit,file=filename_out,status='replace',action='write')
+
+    do
+        call read_samples(samples,nsamples)
+        call write_samples_txt(samples,nsamples)
+        if(nsamples<N) exit
+    enddo
+
+    ! close files
+    close(sample_unit)
+    close(outfile_unit)
+
 end program
